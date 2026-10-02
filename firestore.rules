@@ -1,0 +1,32 @@
+rules_version = '2';
+
+/**
+ * PALLAVI TRADERS — Firestore rules
+ *
+ * Stock levels and customer ledgers are private business records, so every
+ * read and write requires a signed-in admin account. There are exactly two
+ * collections plus one singleton stock document.
+ */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Purchase records (the customer ledger).
+    match /purchases/{purchaseId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Singleton stock counters document: stock/app
+    match /stock/{stockId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // Anything not listed above stays closed.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
