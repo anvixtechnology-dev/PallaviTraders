@@ -50,10 +50,20 @@ function describeShortfalls(shortfalls: StockShortfall[]): string {
   return `Not enough stock for: ${shortfalls.map((s) => CATEGORY_LABELS[s.category].toLowerCase()).join(', ')}.`
 }
 
-function errorCode(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) return undefined
-  const candidate = error as { code?: unknown }
-  return typeof candidate.code === 'string' ? candidate.code : undefined
+const MAX_CAUSE_DEPTH = 5
+
+/**
+ * Reads the Firebase error code (for example `auth/operation-not-allowed`) from a
+ * thrown value. Wrapping an error for a friendlier message drops its `code`, so
+ * the `cause` chain is followed as well; otherwise the setup hints on the login
+ * screen could never recognise a configuration problem. The depth limit stops a
+ * self-referencing cause from looping forever.
+ */
+function errorCode(error: unknown, depth = 0): string | undefined {
+  if (typeof error !== 'object' || error === null || depth > MAX_CAUSE_DEPTH) return undefined
+  const candidate = error as { code?: unknown; cause?: unknown }
+  if (typeof candidate.code === 'string') return candidate.code
+  return errorCode(candidate.cause, depth + 1)
 }
 
 function errorText(error: unknown): string {

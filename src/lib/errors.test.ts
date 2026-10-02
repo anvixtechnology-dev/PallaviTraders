@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
-import { InsufficientStockError, isFirestoreNotEnabled, toErrorMessage, toFieldErrors } from './errors'
+import {
+  AppError,
+  InsufficientStockError,
+  isAuthSetupError,
+  isFirestoreNotEnabled,
+  toAuthErrorMessage,
+  toErrorMessage,
+  toFieldErrors,
+} from './errors'
 
 describe('isFirestoreNotEnabled', () => {
   it('recognises the Cloud Firestore API error', () => {
@@ -58,5 +66,32 @@ describe('InsufficientStockError', () => {
 describe('toFieldErrors', () => {
   it('returns an empty object for other errors', () => {
     expect(toFieldErrors(new Error('boom'))).toEqual({})
+  })
+})
+
+describe('auth failures', () => {
+  /** Mirrors the shape AuthProvider produces: friendly message, original cause. */
+  function wrapped(code: string): AppError {
+    return new AppError(toAuthErrorMessage({ code }), { cause: { code } })
+  }
+
+  it('replaces Firebase wording with something readable', () => {
+    expect(toAuthErrorMessage({ code: 'auth/too-many-requests' })).toMatch(/too many attempts/i)
+  })
+
+  it('still spots a setup problem after the code has been wrapped', () => {
+    expect(isAuthSetupError(wrapped('auth/operation-not-allowed'))).toBe(true)
+    expect(isAuthSetupError(wrapped('auth/configuration-not-found'))).toBe(true)
+  })
+
+  it('does not treat a wrong password as a setup problem', () => {
+    expect(isAuthSetupError(wrapped('auth/invalid-credential'))).toBe(false)
+    expect(isAuthSetupError(wrapped('auth/wrong-password'))).toBe(false)
+  })
+
+  it('survives a self-referencing cause', () => {
+    const looping: { code?: string; cause?: unknown } = {}
+    looping.cause = looping
+    expect(isAuthSetupError(looping)).toBe(false)
   })
 })

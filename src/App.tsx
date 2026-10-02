@@ -27,13 +27,42 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
+/**
+ * Keeps a signed-in user off the login screen. Signing in succeeds without this:
+ * the session is live, but nothing navigates away, so the form just sits there
+ * looking like a dead button. Also covers a refresh on /login and the back
+ * button after signing out.
+ */
+function RedirectIfSignedIn({ children }: { children: ReactNode }) {
+  const { user, initialising } = useAuth()
+
+  if (initialising) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-slate-100">
+        <p className="text-sm text-slate-500">Starting PALLAVI TRADERS…</p>
+      </div>
+    )
+  }
+
+  if (user) return <Navigate to="/stats" replace />
+
+  return <>{children}</>
+}
+
 export default function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/login"
+              element={
+                <RedirectIfSignedIn>
+                  <LoginPage />
+                </RedirectIfSignedIn>
+              }
+            />
             <Route
               element={
                 <RequireAuth>

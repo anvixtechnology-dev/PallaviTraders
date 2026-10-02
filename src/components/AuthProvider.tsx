@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth'
 
 import { AuthContext, type AuthContextValue } from '@/lib/auth'
-import { toAuthErrorMessage } from '@/lib/errors'
+import { AppError, toAuthErrorMessage } from '@/lib/errors'
 import { auth } from '@/services/firebase'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -22,7 +22,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password)
     } catch (error) {
-      throw new Error(toAuthErrorMessage(error))
+      // Keep the original as `cause`: the message is friendlier, but the code is
+      // what tells the login screen whether this is a setup problem it can fix.
+      throw new AppError(toAuthErrorMessage(error), { cause: error })
     }
   }, [])
 

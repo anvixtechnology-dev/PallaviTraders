@@ -20,11 +20,16 @@ export function LoginPage() {
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+    const trimmedEmail = email.trim()
+    if (!trimmedEmail || !password) {
+      setError('Enter both your email address and password.')
+      return
+    }
     setBusy(true)
     setError(null)
     setSetupProblem(false)
     try {
-      await signIn(email, password)
+      await signIn(trimmedEmail, password)
     } catch (signInError) {
       setError(signInError instanceof Error ? signInError.message : 'Could not sign in.')
       setSetupProblem(isAuthSetupError(signInError))
@@ -41,7 +46,10 @@ export function LoginPage() {
           <p className="mt-1 text-sm text-slate-600">Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        {/* noValidate: the browser's own email check silently refuses to submit on a
+            stray space or a pasted character, which looks like a dead button. Checking
+            here instead means a bad entry always produces a visible message. */}
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <Field label="Email" htmlFor="email">
             <TextInput
               id="email"
