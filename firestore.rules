@@ -1,11 +1,16 @@
 rules_version = '2';
 
 /**
- * PALLAVI TRADERS — Firestore rules
+ * PALLAVI IRON TRADERS — Firestore rules
  *
- * Stock levels and customer ledgers are private business records, so every
- * read and write requires a signed-in admin account. There are exactly two
- * collections plus one singleton stock document.
+ * Stock, customer aggregates, sales and quotations are private business
+ * records, so every read and write requires a signed-in admin account.
+ *
+ * Collections:
+ *   stock       — one document per item (maintained in the Firebase console)
+ *   customers   {normalisedName} -> running aggregate per customer
+ *   sales       one document per recorded sale
+ *   quotations  saved quotations (never affect stock)
  */
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -14,13 +19,19 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Purchase records (the customer ledger).
-    match /purchases/{purchaseId} {
+    match /stock/{stockItemId} {
       allow read, write: if isSignedIn();
     }
 
-    // Singleton stock counters document: stock/app
-    match /stock/{stockId} {
+    match /customers/{customerId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /sales/{saleId} {
+      allow read, write: if isSignedIn();
+    }
+
+    match /quotations/{quotationId} {
       allow read, write: if isSignedIn();
     }
 

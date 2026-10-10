@@ -1,5 +1,5 @@
 /**
- * App shell: the shop name at the top of every page and the only three
+ * App shell: the shop name at the top of every page and the only two
  * navigation links the app has.
  */
 
@@ -9,7 +9,6 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 
 const NAV_LINKS = [
-  { to: '/stats', label: 'Stats' },
   { to: '/form', label: 'Form' },
   { to: '/customers', label: 'Customers' },
 ] as const
@@ -21,7 +20,7 @@ export function Layout() {
     <div className="min-h-dvh">
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
-          <h1 className="text-lg font-bold tracking-wide text-slate-900">PALLAVI TRADERS</h1>
+          <h1 className="text-lg font-bold tracking-wide text-slate-900">PALLAVI IRON TRADERS</h1>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs text-slate-500 sm:inline">{user?.email}</span>
             <button

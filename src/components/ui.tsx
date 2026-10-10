@@ -39,6 +39,7 @@ export function TextInput({
   disabled = false,
   invalid = false,
   autoFocus = false,
+  list,
 }: {
   id?: string
   value: string
@@ -48,15 +49,47 @@ export function TextInput({
   disabled?: boolean
   invalid?: boolean
   autoFocus?: boolean
+  list?: string
 }) {
   return (
     <input
       id={id}
       type={type}
       value={value}
+      list={list}
       placeholder={placeholder}
       disabled={disabled}
       autoFocus={autoFocus}
+      onChange={(event) => onChange(event.target.value)}
+      className={`${controlClass} ${invalid ? 'border-red-400' : ''}`}
+    />
+  )
+}
+
+export function TextArea({
+  id,
+  value,
+  onChange,
+  placeholder,
+  rows = 3,
+  disabled = false,
+  invalid = false,
+}: {
+  id?: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  rows?: number
+  disabled?: boolean
+  invalid?: boolean
+}) {
+  return (
+    <textarea
+      id={id}
+      value={value}
+      rows={rows}
+      placeholder={placeholder}
+      disabled={disabled}
       onChange={(event) => onChange(event.target.value)}
       className={`${controlClass} ${invalid ? 'border-red-400' : ''}`}
     />
@@ -177,7 +210,7 @@ export function Button({
   children: ReactNode
   onClick?: () => void
   type?: 'button' | 'submit'
-  variant?: 'primary' | 'secondary'
+  variant?: 'primary' | 'secondary' | 'danger'
   disabled?: boolean
 }) {
   const base =
@@ -185,7 +218,9 @@ export function Button({
   const styles =
     variant === 'primary'
       ? 'bg-brand-600 text-white hover:bg-brand-700'
-      : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+      : variant === 'danger'
+        ? 'border border-red-200 bg-white text-red-600 hover:bg-red-50'
+        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
 
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>

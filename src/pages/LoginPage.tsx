@@ -42,7 +42,7 @@ export function LoginPage() {
     <div className="flex min-h-dvh items-center justify-center bg-slate-100 px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold tracking-wide text-slate-900">PALLAVI TRADERS</h1>
+          <h1 className="text-xl font-bold tracking-wide text-slate-900">PALLAVI IRON TRADERS</h1>
           <p className="mt-1 text-sm text-slate-600">Sign in to continue</p>
         </div>
 

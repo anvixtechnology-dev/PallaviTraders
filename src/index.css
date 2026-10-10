@@ -36,4 +36,61 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+
+  /* Keep the blue/gold quotation colours when printing. */
+  .print-exact {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/*
+ * Printing a quotation: everything except the portalled `.print-root` is hidden
+ * so only the A4 sheet is printed. The user picks "Save as PDF" in the browser's
+ * print dialog — there is no PDF library.
+ */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  body > *:not(.print-root) {
+    display: none !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-root {
+    position: static !important;
+  }
+
+  .print-overlay {
+    position: static !important;
+    overflow: visible !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+
+  .print-sheet {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print-sheet thead {
+    display: table-header-group;
+  }
+
+  .print-sheet tr {
+    break-inside: avoid;
+  }
 }

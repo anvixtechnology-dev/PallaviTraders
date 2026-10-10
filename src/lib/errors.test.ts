@@ -48,18 +48,20 @@ describe('toErrorMessage', () => {
 })
 
 describe('InsufficientStockError', () => {
-  it('names the single category that is short', () => {
-    const error = new InsufficientStockError([{ category: 'pipes', requested: 10, available: 4 }])
-    expect(error.message).toMatch(/only 4 pipes in stock/i)
+  it('names the single item that is short', () => {
+    const error = new InsufficientStockError([
+      { stockItemId: 'p1', name: 'GI Pipe', requested: 10, available: 4 },
+    ])
+    expect(error.message).toMatch(/only 4 of GI Pipe in stock/i)
     expect(error.shortfalls).toHaveLength(1)
   })
 
-  it('lists every short category', () => {
+  it('lists every short item', () => {
     const error = new InsufficientStockError([
-      { category: 'pipes', requested: 10, available: 4 },
-      { category: 'sheets', requested: 30, available: 5 },
+      { stockItemId: 'p1', name: 'GI Pipe', requested: 10, available: 4 },
+      { stockItemId: 's1', name: 'MS Sheet', requested: 30, available: 5 },
     ])
-    expect(error.message).toMatch(/pipes, sheets/i)
+    expect(error.message).toMatch(/GI Pipe, MS Sheet/i)
   })
 })
 

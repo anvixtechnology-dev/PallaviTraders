@@ -6,7 +6,7 @@
  * unexpected failure and reported with a generic (but still logged) message.
  */
 
-import { CATEGORY_LABELS, type StockShortfall } from '@/types'
+import type { StockShortfall } from '@/types'
 
 export class AppError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -28,8 +28,8 @@ export class ValidationError extends AppError {
 }
 
 /**
- * The form asked for more than the shop has on hand. Carries the per-category
- * detail so the form can point at the exact row that is too large.
+ * The form asked for more than the shop has on hand. Carries the per-item detail
+ * so the form can point at the exact row that is too large.
  */
 export class InsufficientStockError extends AppError {
   readonly shortfalls: StockShortfall[]
@@ -45,9 +45,9 @@ function describeShortfalls(shortfalls: StockShortfall[]): string {
   if (shortfalls.length === 0) return 'Not enough stock available.'
   if (shortfalls.length === 1) {
     const [only] = shortfalls
-    return `Only ${only.available} ${CATEGORY_LABELS[only.category].toLowerCase()} in stock, but ${only.requested} were requested.`
+    return `Only ${only.available} of ${only.name} in stock, but ${only.requested} were requested.`
   }
-  return `Not enough stock for: ${shortfalls.map((s) => CATEGORY_LABELS[s.category].toLowerCase()).join(', ')}.`
+  return `Not enough stock for: ${shortfalls.map((s) => s.name).join(', ')}.`
 }
 
 const MAX_CAUSE_DEPTH = 5

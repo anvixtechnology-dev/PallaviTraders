@@ -8,7 +8,6 @@ import { toErrorMessage } from '@/lib/errors'
 import { CustomersPage } from '@/pages/CustomersPage'
 import { FormPage } from '@/pages/FormPage'
 import { LoginPage } from '@/pages/LoginPage'
-import { StatsPage } from '@/pages/StatsPage'
 
 /** Blocks the app until Firebase has restored the session. */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -17,7 +16,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (initialising) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-100">
-        <p className="text-sm text-slate-500">Starting PALLAVI TRADERS…</p>
+        <p className="text-sm text-slate-500">Starting PALLAVI IRON TRADERS…</p>
       </div>
     )
   }
@@ -39,12 +38,12 @@ function RedirectIfSignedIn({ children }: { children: ReactNode }) {
   if (initialising) {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-slate-100">
-        <p className="text-sm text-slate-500">Starting PALLAVI TRADERS…</p>
+        <p className="text-sm text-slate-500">Starting PALLAVI IRON TRADERS…</p>
       </div>
     )
   }
 
-  if (user) return <Navigate to="/stats" replace />
+  if (user) return <Navigate to="/form" replace />
 
   return <>{children}</>
 }
@@ -70,11 +69,10 @@ export default function App() {
                 </RequireAuth>
               }
             >
-              <Route index element={<Navigate to="/stats" replace />} />
-              <Route path="/stats" element={<StatsPage />} />
+              <Route index element={<Navigate to="/form" replace />} />
               <Route path="/form" element={<FormPage />} />
               <Route path="/customers" element={<CustomersPage />} />
-              <Route path="*" element={<Navigate to="/stats" replace />} />
+              <Route path="*" element={<Navigate to="/form" replace />} />
             </Route>
           </Routes>
         </BrowserRouter>
@@ -95,7 +93,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { message: string
     if (this.state.message) {
       return (
         <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-100 px-6 text-center">
-          <h1 className="text-xl font-bold text-slate-900">PALLAVI TRADERS</h1>
+          <h1 className="text-xl font-bold text-slate-900">PALLAVI IRON TRADERS</h1>
           <p className="max-w-md text-sm text-slate-600">{this.state.message}</p>
           <button
             type="button"

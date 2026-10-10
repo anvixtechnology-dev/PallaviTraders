@@ -1,10 +1,12 @@
 /**
- * Domain types for PALLAVI TRADERS.
+ * Domain types for PALLAVI IRON TRADERS.
  *
- * The shop tracks exactly three stock categories and one purchase record per
- * customer entry. Money is stored as a plain rupee number rounded to 2 decimals
- * (integer paise are used internally while calculating). Business dates are
- * `YYYY-MM-DD` strings so sorting and filtering never depend on timezone parsing.
+ * Stock is a set of item documents read from Firestore (there is no stock UI —
+ * the shop manages them directly in the Firebase console). A sale stores a
+ * snapshot of the items, quantities and sale-time prices, so history never
+ * changes even if stock prices change later. Money is stored as a plain rupee
+ * number rounded to 2 decimals (integer paise are used internally while
+ * calculating). Business dates are `YYYY-MM-DD` strings.
  */
 
 export const CATEGORIES = ['pipes', 'sheets', 'hardware'] as const
@@ -46,30 +48,56 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   other: 'Other',
 }
 
-/** Current quantity on hand for each of the three categories. */
-export type Stock = Record<Category, number>
-
-export interface PurchaseItem {
+/** One stock item, read from the `stock` collection. Managed in Firebase. */
+export interface StockItem {
+  id: string
   category: Category
+  name: string
+  quantity: number
+  price: number
+}
+
+/** A line of the sale form before it is validated and saved. */
+export interface SaleLineInput {
+  stockItemId: string
+  quantity: number
+  pricePerUnit: number
+}
+
+/** A line of a saved sale, with the item details snapshotted at sale time. */
+export interface SaleItem {
+  stockItemId: string
+  category: Category
+  itemName: string
   quantity: number
   pricePerUnit: number
   total: number
 }
 
+/** Command payload: sale form -> service layer. */
+export interface SaleInput {
+  customerName: string
+  dsNumber: string
+  date: string
+  items: SaleLineInput[]
+  amountPaid: number
+  paymentStatus: PaymentStatus
+  paymentMethod: PaymentMethod
+}
+
 /**
- * One saved customer purchase. This is both the customer record and the
- * transaction: the spec treats each form submission as one entry with a DS
- * number, so they are stored together in a single `purchases` document.
+ * One saved sale. This is both the customer transaction and the stock movement;
+ * the customer's own record is folded out of these documents.
  */
-export interface Purchase {
+export interface Sale {
   id: string
   customerName: string
-  /** Normalised lowercase name, used for searching. */
+  /** Normalised lowercase name, used for searching and grouping. */
   nameKey: string
   dsNumber: string
   /** Business date, `YYYY-MM-DD`. */
   date: string
-  items: PurchaseItem[]
+  items: SaleItem[]
   totalAmount: number
   amountPaid: number
   balanceAmount: number
@@ -78,26 +106,71 @@ export interface Purchase {
   createdAt: number
 }
 
-/** A row of the purchase form before it is validated and saved. */
-export interface PurchaseItemInput {
-  category: Category
-  quantity: number
-  pricePerUnit: number
-}
-
-/** Command payload: purchase form -> service layer. */
-export interface PurchaseInput {
-  customerName: string
-  dsNumber: string
-  date: string
-  items: PurchaseItemInput[]
+/**
+ * A lightweight customer record kept in the `customers` collection, keyed on
+ * the normalised name, updated whenever that customer buys something.
+ */
+export interface CustomerRecord {
+  id: string
+  name: string
+  nameKey: string
+  dsNumbers: string[]
+  saleCount: number
+  totalAmount: number
   amountPaid: number
-  paymentStatus: PaymentStatus
-  paymentMethod: PaymentMethod
+  balanceAmount: number
+  firstDate: string
+  lastDate: string
+  updatedAt: number
 }
 
+/** A stock line that was requested beyond what is on hand. */
 export interface StockShortfall {
-  category: Category
+  stockItemId: string
+  name: string
   requested: number
   available: number
+}
+
+/** One line of a quotation, before the amount is calculated. */
+export interface QuotationItemInput {
+  description: string
+  size: string
+  quantity: number
+  thickness: string
+  /** Weight in kilograms; the amount is weight x rate per kg. */
+  weightKg: number
+  ratePerKg: number
+}
+
+/** One line of a quotation as it is stored, with the calculated amount. */
+export interface QuotationItem extends QuotationItemInput {
+  amount: number
+}
+
+/** Command payload: quotation form -> service layer. */
+export interface QuotationInput {
+  quotationNumber: string
+  customerName: string
+  referenceNumber: string
+  place: string
+  date: string
+  items: QuotationItemInput[]
+}
+
+/**
+ * A generated quotation. Quotations never touch stock — they are commercial
+ * offers, not sales.
+ */
+export interface Quotation {
+  id: string
+  quotationNumber: string
+  customerName: string
+  referenceNumber: string
+  place: string
+  date: string
+  items: QuotationItem[]
+  grandTotal: number
+  amountInWords: string
+  createdAt: number
 }
