@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type { PaymentStatus, Sale, SaleItem } from '@/types'
-import { saleItemSummary, saleMatches } from './customers'
+import { groupSalesByCustomer, saleItemSummary, saleMatches } from './customers'
 
 function saleItem(overrides: Partial<SaleItem> = {}): SaleItem {
   return {
@@ -72,5 +72,45 @@ describe('saleMatches', () => {
 
   it('rejects a query that matches nothing', () => {
     expect(saleMatches(sale(), 'nothing-here')).toBe(false)
+  })
+})
+
+describe('groupSalesByCustomer', () => {
+  it('folds every sale of one customer into a single group', () => {
+    const groups = groupSalesByCustomer([
+      sale({ id: 's1', totalAmount: 1000, amountPaid: 1000, balanceAmount: 0 }),
+      sale({
+        id: 's2',
+        date: '2026-03-10',
+        totalAmount: 500,
+        amountPaid: 200,
+        balanceAmount: 300,
+        paymentStatus: 'partial',
+      }),
+      sale({ id: 's3', customerName: 'Other Co', nameKey: 'other co' }),
+    ])
+
+    expect(groups).toHaveLength(2)
+
+    const ramesh = groups[0]
+    expect(ramesh.nameKey).toBe('ramesh traders')
+    expect(ramesh.name).toBe('Ramesh Traders')
+    expect(ramesh.saleCount).toBe(2)
+    expect(ramesh.totalAmount).toBe(1500)
+    expect(ramesh.amountPaid).toBe(1200)
+    expect(ramesh.balanceAmount).toBe(300)
+    expect(ramesh.lastDate).toBe('2026-03-10')
+    expect(ramesh.paymentStatus).toBe('partial')
+    expect(ramesh.sales.map((entry) => entry.id)).toEqual(['s1', 's2'])
+  })
+
+  it('derives a paid status when the group is settled', () => {
+    const [group] = groupSalesByCustomer([sale()])
+    expect(group.paymentStatus).toBe('paid')
+    expect(group.saleCount).toBe(1)
+  })
+
+  it('returns no groups for no sales', () => {
+    expect(groupSalesByCustomer([])).toEqual([])
   })
 })

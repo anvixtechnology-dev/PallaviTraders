@@ -5,9 +5,9 @@ import { AuthProvider } from '@/components/AuthProvider'
 import { Layout } from '@/components/Layout'
 import { useAuth } from '@/lib/auth'
 import { toErrorMessage } from '@/lib/errors'
-import { CustomersPage } from '@/pages/CustomersPage'
 import { FormPage } from '@/pages/FormPage'
 import { LoginPage } from '@/pages/LoginPage'
+import { QuotationsPage } from '@/pages/QuotationsPage'
 
 /** Blocks the app until Firebase has restored the session. */
 function RequireAuth({ children }: { children: ReactNode }) {
@@ -71,7 +71,7 @@ export default function App() {
             >
               <Route index element={<Navigate to="/form" replace />} />
               <Route path="/form" element={<FormPage />} />
-              <Route path="/customers" element={<CustomersPage />} />
+              <Route path="/quotations" element={<QuotationsPage />} />
               <Route path="*" element={<Navigate to="/form" replace />} />
             </Route>
           </Routes>

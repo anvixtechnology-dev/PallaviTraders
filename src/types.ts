@@ -132,26 +132,89 @@ export interface StockShortfall {
   available: number
 }
 
-/** One line of a quotation, before the amount is calculated. */
-export interface QuotationItemInput {
-  description: string
+/* ------------------------------------------------------------------ *
+ * Quotations                                                        *
+ * ------------------------------------------------------------------ */
+
+/** The three item categories a quotation line can belong to. */
+export const ITEM_CATEGORIES = ['pipes', 'sheets', 'hardware'] as const
+export type ItemCategory = (typeof ITEM_CATEGORIES)[number]
+
+export const ITEM_CATEGORY_LABELS: Record<ItemCategory, string> = {
+  pipes: 'Pipes',
+  sheets: 'Sheets',
+  hardware: 'Hardware',
+}
+
+export const PIPE_TYPES = ['round', 'box'] as const
+export type PipeType = (typeof PIPE_TYPES)[number]
+
+export const PIPE_TYPE_LABELS: Record<PipeType, string> = {
+  round: 'Round Pipe',
+  box: 'Box Pipe',
+}
+
+/** A pipe line. Items are identified by type and size. */
+export interface PipeItemInput {
+  category: 'pipes'
+  pipeType: PipeType
+  /** Nominal size (round) or dimensions (box), e.g. `1/2"` or `40 × 20 mm`. */
   size: string
+  weightPerPipeKg: number
   quantity: number
-  thickness: string
-  /** Weight in kilograms; the amount is weight x rate per kg. */
-  weightKg: number
   ratePerKg: number
 }
 
-/** One line of a quotation as it is stored, with the calculated amount. */
-export interface QuotationItem extends QuotationItemInput {
+/** A roofing sheet line, identified by length. */
+export interface SheetItemInput {
+  category: 'sheets'
+  lengthFt: number
+  weightPerFootKg: number
+  quantity: number
+  ratePerKg: number
+}
+
+/** A hardware line, priced per piece rather than per kg. */
+export interface HardwareItemInput {
+  category: 'hardware'
+  description: string
+  pieces: number
+  ratePerPiece: number
+}
+
+/** One line of a quotation before it is validated and stored. */
+export type QuotationItemInput = PipeItemInput | SheetItemInput | HardwareItemInput
+
+/** A pipe line as stored, with its calculated total weight and amount. */
+export interface PipeItem extends PipeItemInput {
+  totalWeightKg: number
   amount: number
+}
+/** A sheet line as stored, with its calculated total weight and amount. */
+export interface SheetItem extends SheetItemInput {
+  totalWeightKg: number
+  amount: number
+}
+/** A hardware line as stored, with its calculated amount. */
+export interface HardwareItem extends HardwareItemInput {
+  amount: number
+}
+export type QuotationItem = PipeItem | SheetItem | HardwareItem
+
+/** Category subtotals plus the grand total. */
+export interface QuotationTotals {
+  pipesTotal: number
+  sheetsTotal: number
+  hardwareTotal: number
+  grandTotal: number
 }
 
 /** Command payload: quotation form -> service layer. */
 export interface QuotationInput {
   quotationNumber: string
   customerName: string
+  /** Optional customer GST number; separate from the shop's fixed GSTIN. */
+  customerGstNumber: string
   referenceNumber: string
   place: string
   date: string
@@ -162,15 +225,17 @@ export interface QuotationInput {
  * A generated quotation. Quotations never touch stock — they are commercial
  * offers, not sales.
  */
-export interface Quotation {
+export interface Quotation extends QuotationTotals {
   id: string
   quotationNumber: string
   customerName: string
+  /** Optional customer GST number; never overwrites the shop's fixed GSTIN. */
+  customerGstNumber: string
   referenceNumber: string
   place: string
   date: string
   items: QuotationItem[]
-  grandTotal: number
   amountInWords: string
   createdAt: number
+  updatedAt: number
 }

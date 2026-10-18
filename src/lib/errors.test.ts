@@ -38,6 +38,15 @@ describe('toErrorMessage', () => {
     expect(toErrorMessage({ code: 'permission-denied' })).toMatch(/permission/i)
   })
 
+  it('replaces Firestore\'s raw permission wording', () => {
+    const error = Object.assign(new Error('Missing or insufficient permissions.'), {
+      code: 'permission-denied',
+    })
+    const message = toErrorMessage(error)
+    expect(message).toMatch(/permission/i)
+    expect(message).not.toMatch(/Missing or insufficient/i)
+  })
+
   it('explains an offline failure', () => {
     expect(toErrorMessage({ code: 'unavailable' })).toMatch(/connection/i)
   })

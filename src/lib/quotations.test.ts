@@ -1,25 +1,62 @@
 import { describe, expect, it } from 'vitest'
 
-import type { QuotationInput } from '@/types'
+import type {
+  HardwareItemInput,
+  PipeItemInput,
+  QuotationInput,
+  SheetItemInput,
+} from '@/types'
 import {
+  BOX_PIPE_SIZES,
   BUSINESS,
+  EMPTY_CELL,
   GSTIN,
+  ROUND_PIPE_SIZES,
+  SHEET_LENGTHS,
   buildQuotation,
-  quotationGrandTotal,
-  quotationItemAmount,
+  computeTotals,
+  findRoundPipeSize,
+  hardwareAmount,
+  pipeAmount,
+  pipeTotalWeight,
+  quotationPdfFileName,
+  quotationTableRows,
   quotationWhatsAppMessage,
+  sheetAmount,
+  sheetTotalWeight,
   validateQuotation,
   whatsAppUrl,
 } from './quotations'
 
-function item(overrides: Partial<QuotationInput['items'][number]> = {}) {
+function pipe(overrides: Partial<PipeItemInput> = {}): PipeItemInput {
   return {
-    description: 'GI Pipe',
-    size: '2 inch',
+    category: 'pipes',
+    pipeType: 'round',
+    size: '1/2"',
+    weightPerPipeKg: 10,
+    quantity: 10,
+    ratePerKg: 86,
+    ...overrides,
+  }
+}
+
+function sheet(overrides: Partial<SheetItemInput> = {}): SheetItemInput {
+  return {
+    category: 'sheets',
+    lengthFt: 10,
+    weightPerFootKg: 1.25,
     quantity: 1,
-    thickness: '3 mm',
-    weightKg: 100,
-    ratePerKg: 80,
+    ratePerKg: 86,
+    ...overrides,
+  }
+}
+
+function hardware(overrides: Partial<HardwareItemInput> = {}): HardwareItemInput {
+  return {
+    category: 'hardware',
+    description: 'Nails',
+    pieces: 10,
+    ratePerPiece: 10,
     ...overrides,
   }
 }
@@ -28,54 +65,108 @@ function input(overrides: Partial<QuotationInput> = {}): QuotationInput {
   return {
     quotationNumber: 'PIT/0001',
     customerName: 'Ramesh Traders',
+    customerGstNumber: '',
     referenceNumber: 'REF-1',
     place: 'Bhimavaram',
     date: '2026-03-05',
-    items: [item()],
+    items: [pipe()],
     ...overrides,
   }
 }
 
 describe('fixed business details', () => {
-  it('uses the shop GSTIN', () => {
+  it('uses the shop GSTIN and never the customer one', () => {
     expect(GSTIN).toBe('37BPXPS5746G1ZY')
     expect(BUSINESS.gstin).toBe(GSTIN)
     expect(BUSINESS.name).toBe('PALLAVI IRON TRADERS')
-    expect(BUSINESS.proprietor).toBe('Merugu Srinivas')
+    expect(BUSINESS.proprietor).toBe('Merugu Srinivas / Vaida Satish')
   })
 })
 
-describe('quotationItemAmount', () => {
-  it('multiplies weight by rate', () => {
-    expect(quotationItemAmount(item({ weightKg: 12.5, ratePerKg: 80 }))).toBe(1000)
+describe('reference tables', () => {
+  it('exposes the round pipe sizes with ODs and ranges', () => {
+    expect(ROUND_PIPE_SIZES).toHaveLength(12)
+    expect(findRoundPipeSize('1/2"')).toMatchObject({ odMm: 20, minWallMm: 0.8, maxWallMm: 2.1 })
+    expect(findRoundPipeSize('8"')).toMatchObject({ odMm: 219 })
+    expect(findRoundPipeSize('nope')).toBeUndefined()
   })
 
-  it('treats missing values as zero', () => {
-    expect(quotationItemAmount(item({ weightKg: Number.NaN }))).toBe(0)
+  it('has box pipe sizes', () => {
+    expect(BOX_PIPE_SIZES).toContain('40 × 20 mm')
+    expect(BOX_PIPE_SIZES).toContain('100 × 100 mm')
+  })
+
+  it('covers 2 ft to 30 ft in 0.5 ft steps', () => {
+    expect(SHEET_LENGTHS[0]).toBe(2)
+    expect(SHEET_LENGTHS[SHEET_LENGTHS.length - 1]).toBe(30)
+    expect(SHEET_LENGTHS).toHaveLength(57)
+    expect(SHEET_LENGTHS).toContain(10.5)
   })
 })
 
-describe('quotationGrandTotal', () => {
-  it('sums every line', () => {
-    expect(
-      quotationGrandTotal([
-        item({ weightKg: 10, ratePerKg: 100 }),
-        item({ weightKg: 5, ratePerKg: 20 }),
-      ]),
-    ).toBe(1100)
+describe('pipe calculations', () => {
+  it('total weight = weight per pipe x quantity', () => {
+    expect(pipeTotalWeight(pipe())).toBe(100)
   })
 
-  it('is zero without items', () => {
-    expect(quotationGrandTotal([])).toBe(0)
+  it('amount = total weight x rate per kg', () => {
+    expect(pipeAmount(pipe())).toBe(8600)
+  })
+})
+
+describe('sheet calculations', () => {
+  it('total weight = length x weight per foot', () => {
+    expect(sheetTotalWeight(sheet())).toBe(12.5)
+  })
+
+  it('amount = total weight x rate', () => {
+    expect(sheetAmount(sheet())).toBe(1075)
+  })
+
+  it('multiplies by quantity', () => {
+    const multiple = sheet({ quantity: 4 })
+    expect(sheetTotalWeight(multiple)).toBe(50)
+    expect(sheetAmount(multiple)).toBe(4300)
+  })
+})
+
+describe('hardware calculations', () => {
+  it('amount = pieces x rate per piece', () => {
+    expect(hardwareAmount(hardware())).toBe(100)
+  })
+})
+
+describe('computeTotals', () => {
+  it('sums each category and the grand total', () => {
+    const totals = computeTotals([pipe(), sheet(), hardware()])
+    expect(totals.pipesTotal).toBe(8600)
+    expect(totals.sheetsTotal).toBe(1075)
+    expect(totals.hardwareTotal).toBe(100)
+    expect(totals.grandTotal).toBe(9775)
+  })
+
+  it('is all zeros without items', () => {
+    expect(computeTotals([])).toEqual({
+      pipesTotal: 0,
+      sheetsTotal: 0,
+      hardwareTotal: 0,
+      grandTotal: 0,
+    })
   })
 })
 
 describe('buildQuotation', () => {
-  it('calculates per-line amounts, the grand total and words', () => {
-    const quotation = buildQuotation(input())
-    expect(quotation.items[0].amount).toBe(8000)
-    expect(quotation.grandTotal).toBe(8000)
-    expect(quotation.amountInWords).toBe('Rupees Eight Thousand Only')
+  it('calculates line totals, category totals and words', () => {
+    const quotation = buildQuotation(input({ items: [pipe(), sheet(), hardware()] }))
+    expect(quotation.items[0]).toMatchObject({ totalWeightKg: 100, amount: 8600 })
+    expect(quotation.grandTotal).toBe(9775)
+    expect(quotation.amountInWords).toBe('Rupees Nine Thousand Seven Hundred Seventy Five Only')
+  })
+
+  it('keeps the optional customer GST number separate from the shop GSTIN', () => {
+    const quotation = buildQuotation(input({ customerGstNumber: '37ABCDE1234F1Z5' }))
+    expect(quotation.customerGstNumber).toBe('37ABCDE1234F1Z5')
+    expect(quotation.customerGstNumber).not.toBe(GSTIN)
   })
 
   it('trims text fields', () => {
@@ -88,6 +179,16 @@ describe('buildQuotation', () => {
 describe('validateQuotation', () => {
   it('accepts a complete quotation', () => {
     expect(validateQuotation(input()).ok).toBe(true)
+  })
+
+  it('accepts a quotation with no customer GST number', () => {
+    expect(validateQuotation(input({ customerGstNumber: '' })).ok).toBe(true)
+  })
+
+  it('rejects a customer GST number with punctuation', () => {
+    const result = validateQuotation(input({ customerGstNumber: '37-ABCDE' }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors.customerGstNumber).toBeDefined()
   })
 
   it('requires a number, customer and valid date', () => {
@@ -108,15 +209,44 @@ describe('validateQuotation', () => {
     if (!result.ok) expect(result.fieldErrors.items).toBeDefined()
   })
 
-  it('requires a description and positive weight per line', () => {
+  it('rejects negative quantities and rates', () => {
     const result = validateQuotation(
-      input({ items: [item({ description: '', weightKg: 0 })] }),
+      input({ items: [pipe({ quantity: -1, ratePerKg: -5 })] }),
     )
     expect(result.ok).toBe(false)
     if (!result.ok) {
-      expect(result.fieldErrors['item.0.description']).toBeDefined()
-      expect(result.fieldErrors['item.0.weightKg']).toBeDefined()
+      expect(result.fieldErrors['item.0.quantity']).toBeDefined()
+      expect(result.fieldErrors['item.0.ratePerKg']).toBeDefined()
     }
+  })
+
+  it('requires a length and weight per foot for a sheet', () => {
+    const result = validateQuotation(input({ items: [sheet({ weightPerFootKg: 0 })] }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors['item.0.weightPerFootKg']).toBeDefined()
+  })
+
+  it('requires a sheet quantity', () => {
+    const result = validateQuotation(input({ items: [sheet({ quantity: 0 })] }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors['item.0.quantity']).toBeDefined()
+  })
+
+  it('requires hardware pieces', () => {
+    const result = validateQuotation(input({ items: [hardware({ pieces: 0 })] }))
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.fieldErrors['item.0.pieces']).toBeDefined()
+  })
+
+  it('requires a hardware description but not for pipes or sheets', () => {
+    const hardwareResult = validateQuotation(input({ items: [hardware({ description: '  ' })] }))
+    expect(hardwareResult.ok).toBe(false)
+    if (!hardwareResult.ok) {
+      expect(hardwareResult.fieldErrors['item.0.description']).toBeDefined()
+    }
+
+    const pipesResult = validateQuotation(input({ items: [pipe(), sheet()] }))
+    expect(pipesResult.ok).toBe(true)
   })
 })
 
@@ -129,7 +259,7 @@ describe('whatsAppUrl', () => {
     expect(whatsAppUrl('+91 99635 22888', 'hi')).toBe('https://wa.me/919963522888?text=hi')
   })
 
-  it('strips punctuation from the number and encodes the message', () => {
+  it('strips punctuation and encodes the message', () => {
     expect(whatsAppUrl('99635-22888', 'a b')).toBe('https://wa.me/919963522888?text=a%20b')
   })
 })
@@ -140,9 +270,50 @@ describe('quotationWhatsAppMessage', () => {
       id: 'q1',
       ...buildQuotation(input()),
       createdAt: 1,
+      updatedAt: 1,
     })
+    expect(message).toContain('PALLAVI IRON TRADERS')
     expect(message).toContain('PIT/0001')
     expect(message).toContain('Ramesh Traders')
-    expect(message).toContain('8000')
+    expect(message).toContain('8,600.00')
+  })
+})
+
+describe('quotationTableRows', () => {
+  const rowsFor = (items: QuotationInput['items']) =>
+    quotationTableRows({ id: 'q1', ...buildQuotation(input({ items })), createdAt: 1, updatedAt: 1 })
+
+  it('renders a pipes-only quotation in the unified columns', () => {
+    expect(rowsFor([pipe()])).toEqual([
+      ['1', 'Pipes', 'Round Pipe', '1/2"', EMPTY_CELL, '100.00', '10', '86.00', '8,600.00'],
+    ])
+  })
+
+  it('renders a sheets-only quotation in the unified columns', () => {
+    expect(rowsFor([sheet()])).toEqual([
+      ['1', 'Sheets', 'Sheets', EMPTY_CELL, '10.0', '12.50', '1', '86.00', '1,075.00'],
+    ])
+  })
+
+  it('renders a hardware-only quotation in the unified columns', () => {
+    expect(rowsFor([hardware()])).toEqual([
+      ['1', 'Hardware', 'Nails', EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, '10', '10.00', '100.00'],
+    ])
+  })
+
+  it('keeps entry order and continuous numbering for a mixed quotation', () => {
+    const rows = rowsFor([pipe(), hardware(), sheet()])
+    expect(rows.map((row) => row[0])).toEqual(['1', '2', '3'])
+    expect(rows.map((row) => row[1])).toEqual(['Pipes', 'Hardware', 'Sheets'])
+  })
+})
+
+describe('quotationPdfFileName', () => {
+  it('sanitises the quotation number into a safe filename', () => {
+    expect(quotationPdfFileName({ quotationNumber: 'PIT/0001' })).toBe('Quotation-PIT_0001.pdf')
+  })
+
+  it('falls back to "draft" when the number is empty', () => {
+    expect(quotationPdfFileName({ quotationNumber: '   ' })).toBe('Quotation-draft.pdf')
   })
 })

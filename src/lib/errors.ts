@@ -83,23 +83,28 @@ export function isFirestoreNotEnabled(error: unknown): boolean {
 const FIRESTORE_NOT_ENABLED =
   'Cloud Firestore is not switched on for this project yet. Open the Firebase console, enable Cloud Firestore, create the database, then deploy the security rules.'
 
-/** Extract a human-readable message from anything that was thrown. */
+/**
+ * Extract a human-readable message from anything that was thrown. Known
+ * Firebase error codes are mapped to a friendly sentence *before* the raw
+ * message is used, because Firestore's own text ("Missing or insufficient
+ * permissions.") is not something the shop owner can act on.
+ */
 export function toErrorMessage(error: unknown, fallback = 'Something went wrong. Please try again.'): string {
   if (isFirestoreNotEnabled(error)) return FIRESTORE_NOT_ENABLED
   if (error instanceof AppError) return error.message
-  if (error instanceof Error && error.message) return error.message
 
   switch (errorCode(error)) {
     case 'permission-denied':
-      return 'You do not have permission to perform this action.'
+      return 'You do not have permission to do that. Make sure you are signed in, and that the Firestore security rules have been deployed.'
     case 'unavailable':
     case 'deadline-exceeded':
       return 'Could not reach the server. Check your connection and try again.'
     case 'not-found':
       return 'The requested record no longer exists.'
-    default:
-      return fallback
   }
+
+  if (error instanceof Error && error.message) return error.message
+  return fallback
 }
 
 /** Field-level messages from a `ValidationError`, or an empty object. */

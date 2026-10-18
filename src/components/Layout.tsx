@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 
 const NAV_LINKS = [
   { to: '/form', label: 'Form' },
-  { to: '/customers', label: 'Customers' },
+  { to: '/quotations', label: 'Quotations' },
 ] as const
 
 export function Layout() {

@@ -66,6 +66,55 @@ export function TextInput({
   )
 }
 
+/**
+ * An editable, searchable dropdown: pick one of `options` or type a custom
+ * value. Backed by a native `<datalist>`, so the chosen/typed value is always
+ * free text and is never forced to match an existing option.
+ */
+export function Combobox({
+  id,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled = false,
+  invalid = false,
+}: {
+  id?: string
+  value: string
+  onChange: (value: string) => void
+  options: readonly { value: string; label: string }[]
+  placeholder?: string
+  disabled?: boolean
+  invalid?: boolean
+}) {
+  const listId = id ? `${id}-list` : undefined
+
+  return (
+    <>
+      <input
+        id={id}
+        type="text"
+        list={listId}
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className={`${controlClass} ${invalid ? 'border-red-400' : ''}`}
+      />
+      {listId ? (
+        <datalist id={listId}>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </datalist>
+      ) : null}
+    </>
+  )
+}
+
 export function TextArea({
   id,
   value,
@@ -129,6 +178,7 @@ export function NumberInput({
         placeholder={placeholder}
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
+        onWheel={(event) => event.currentTarget.blur()}
         className={`${controlClass} tabular-nums ${suffix ? 'pr-12' : ''} ${invalid ? 'border-red-400' : ''}`}
       />
       {suffix ? (
@@ -210,7 +260,7 @@ export function Button({
   children: ReactNode
   onClick?: () => void
   type?: 'button' | 'submit'
-  variant?: 'primary' | 'secondary' | 'danger'
+  variant?: 'primary' | 'secondary' | 'danger' | 'success'
   disabled?: boolean
 }) {
   const base =
@@ -218,9 +268,11 @@ export function Button({
   const styles =
     variant === 'primary'
       ? 'bg-brand-600 text-white hover:bg-brand-700'
-      : variant === 'danger'
-        ? 'border border-red-200 bg-white text-red-600 hover:bg-red-50'
-        : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+      : variant === 'success'
+        ? 'bg-green-600 text-white hover:bg-green-700'
+        : variant === 'danger'
+          ? 'border border-red-200 bg-white text-red-600 hover:bg-red-50'
+          : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
 
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
