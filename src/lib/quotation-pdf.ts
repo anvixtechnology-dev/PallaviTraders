@@ -52,7 +52,7 @@ function drawHeader(doc: jsPDF, quotation: Quotation): number {
   doc.text(BUSINESS.materials, PAGE_WIDTH / 2, 29, { align: 'center', maxWidth: CONTENT_WIDTH })
   doc.text(BUSINESS.address, PAGE_WIDTH / 2, 33, { align: 'center', maxWidth: CONTENT_WIDTH })
   doc.text(
-    `Mobile: ${BUSINESS.mobile}   ·   Proprietor: ${BUSINESS.proprietor}   ·   GSTIN: ${BUSINESS.gstin}`,
+    `Mobile: ${BUSINESS.mobile}   ·   Proprietor: ${BUSINESS.proprietors}   ·   GSTIN: ${BUSINESS.gstin}`,
     PAGE_WIDTH / 2,
     37,
     { align: 'center' },

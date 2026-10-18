@@ -79,7 +79,7 @@ describe('fixed business details', () => {
     expect(GSTIN).toBe('37BPXPS5746G1ZY')
     expect(BUSINESS.gstin).toBe(GSTIN)
     expect(BUSINESS.name).toBe('PALLAVI IRON TRADERS')
-    expect(BUSINESS.proprietor).toBe('Merugu Srinivas / Vaida Satish')
+    expect(BUSINESS.proprietors).toBe('Merugu Srinivas / Vaida Satish')
   })
 })
 
