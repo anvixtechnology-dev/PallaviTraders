@@ -15,8 +15,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 
   if (initialising) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-100">
-        <p className="text-sm text-slate-500">Starting PALLAVI IRON TRADERS…</p>
+      <div className="flex min-h-dvh items-center justify-center bg-page">
+        <p className="text-sm text-stone-500">Starting PALLAVI IRON TRADERS…</p>
       </div>
     )
   }
@@ -37,8 +37,8 @@ function RedirectIfSignedIn({ children }: { children: ReactNode }) {
 
   if (initialising) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-slate-100">
-        <p className="text-sm text-slate-500">Starting PALLAVI IRON TRADERS…</p>
+      <div className="flex min-h-dvh items-center justify-center bg-page">
+        <p className="text-sm text-stone-500">Starting PALLAVI IRON TRADERS…</p>
       </div>
     )
   }
@@ -92,9 +92,9 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { message: string
   override render() {
     if (this.state.message) {
       return (
-        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-slate-100 px-6 text-center">
-          <h1 className="text-xl font-bold text-slate-900">PALLAVI IRON TRADERS</h1>
-          <p className="max-w-md text-sm text-slate-600">{this.state.message}</p>
+        <div className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-page px-6 text-center">
+          <h1 className="text-xl font-bold text-stone-900">PALLAVI IRON TRADERS</h1>
+          <p className="max-w-md text-sm text-stone-600">{this.state.message}</p>
           <button
             type="button"
             onClick={() => window.location.reload()}

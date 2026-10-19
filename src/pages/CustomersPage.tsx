@@ -139,7 +139,7 @@ export function CustomersPage() {
                                   key={sale.id}
                                   type="button"
                                   onClick={() => setSelectedId(sale.id)}
-                                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:border-brand-300 hover:bg-brand-50"
+                                  className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-md border border-slate-200 bg-white px-3 py-2 text-left text-sm hover:border-stone-300 hover:bg-stone-50"
                                 >
                                   <span className="w-24 shrink-0 font-medium text-slate-700">
                                     {formatDate(sale.date)}

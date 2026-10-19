@@ -10,7 +10,7 @@ import { useAuth } from '@/lib/auth'
 
 const NAV_LINKS = [
   { to: '/form', label: 'Form' },
-  { to: '/quotations', label: 'Quotations' },
+  { to: '/quotations', label: 'Customers' },
 ] as const
 
 export function Layout() {
@@ -18,32 +18,37 @@ export function Layout() {
 
   return (
     <div className="min-h-dvh">
-      <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4">
-          <h1 className="text-lg font-bold tracking-wide text-slate-900">PALLAVI IRON TRADERS</h1>
+      <header className="border-b border-stone-200 bg-white">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+          <div className="flex flex-col gap-0.5">
+            <h1 className="text-lg font-semibold tracking-tight text-stone-900">
+              PALLAVI IRON TRADERS
+            </h1>
+            <p className="text-xs text-stone-500">Quotation Management</p>
+          </div>
           <div className="flex items-center gap-3">
-            <span className="hidden text-xs text-slate-500 sm:inline">{user?.email}</span>
+            <span className="hidden truncate text-xs text-stone-500 sm:inline">{user?.email}</span>
             <button
               type="button"
               onClick={() => void signOut()}
-              className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-md border border-stone-300 px-3 py-1.5 text-xs font-medium text-stone-700 hover:bg-stone-50"
             >
               Sign out
             </button>
           </div>
         </div>
 
-        <nav className="mx-auto max-w-4xl px-4">
-          <ul className="-mb-px flex gap-1">
+        <nav className="mx-auto max-w-5xl px-4 sm:px-5">
+          <ul className="-mb-px flex gap-2">
             {NAV_LINKS.map((link) => (
               <li key={link.to}>
                 <NavLink
                   to={link.to}
                   className={({ isActive }) =>
-                    `inline-block border-b-2 px-3 py-2.5 text-sm font-medium ${
+                    `inline-flex items-center gap-2 border-b-2 px-2.5 py-2 text-sm transition-colors ${
                       isActive
-                        ? 'border-brand-600 text-brand-700'
-                        : 'border-transparent text-slate-600 hover:text-slate-900'
+                        ? 'border-stone-900 text-stone-900'
+                        : 'border-transparent text-stone-500 hover:text-stone-900'
                     }`
                   }
                 >
@@ -55,7 +60,7 @@ export function Layout() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-4xl px-4 py-6">
+      <main className="mx-auto max-w-5xl px-4 py-6 sm:px-5">
         <Outlet />
       </main>
     </div>
@@ -65,9 +70,9 @@ export function Layout() {
 /** Page heading used under the nav. */
 export function PageHeading({ title, description }: { title: string; description?: ReactNode }) {
   return (
-    <div className="mb-5">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-      {description ? <p className="mt-1 text-sm text-slate-600">{description}</p> : null}
+    <div className="mb-6 flex flex-col gap-1">
+      <h2 className="text-xl font-semibold tracking-tight text-stone-900 sm:text-2xl">{title}</h2>
+      {description ? <p className="text-sm text-stone-500">{description}</p> : null}
     </div>
   )
 }

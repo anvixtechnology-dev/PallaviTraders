@@ -106,7 +106,7 @@ export function WhatsAppDialog({
 
   return (
     <div
-      className="no-print fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4"
+      className="no-print fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-stone-900/50 p-4"
       onClick={onClose}
       role="presentation"
     >
@@ -115,15 +115,15 @@ export function WhatsAppDialog({
         aria-modal="true"
         aria-label="Send quotation on WhatsApp"
         onClick={(event) => event.stopPropagation()}
-        className="my-8 w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-xl"
+        className="my-8 w-full max-w-md rounded-lg border border-stone-200 bg-white shadow-xl"
       >
-        <div className="flex items-start justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-base font-semibold text-slate-900">Send via WhatsApp</h3>
+        <div className="flex items-start justify-between border-b border-stone-200 px-5 py-4">
+          <h3 className="text-base font-semibold text-stone-900">Send via WhatsApp</h3>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="rounded-md px-2 py-1 text-sm text-slate-500 hover:bg-slate-100"
+            className="rounded-md px-2 py-1 text-sm text-stone-500 hover:bg-stone-100"
           >
             ✕
           </button>
@@ -159,12 +159,12 @@ export function WhatsAppDialog({
           </Field>
 
           {supportsFileShare ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-stone-500">
               Your device will open the share sheet — choose WhatsApp to send the PDF attached, with
               the message as its caption.
             </p>
           ) : (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-stone-500">
               This browser cannot attach files. The PDF will download and a WhatsApp chat will open
               with the message pre-filled — attach the downloaded PDF in the chat.
             </p>
@@ -177,7 +177,7 @@ export function WhatsAppDialog({
           ) : null}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-3">
+        <div className="flex justify-end gap-2 border-t border-stone-200 px-5 py-3">
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>

@@ -31,7 +31,7 @@ export function ConfirmDialog({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/50 p-4"
       role="presentation"
       onClick={() => {
         if (!busy) onCancel()
@@ -42,18 +42,18 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-md rounded-lg border border-slate-200 bg-white shadow-lg"
+        className="w-full max-w-md rounded-lg border border-stone-200 bg-white shadow-lg"
       >
-        <div className="border-b border-slate-200 px-5 py-4">
-          <h3 className="text-base font-semibold text-slate-900">{title}</h3>
+        <div className="border-b border-stone-200 px-5 py-4">
+          <h3 className="text-base font-semibold text-stone-900">{title}</h3>
         </div>
 
-        <div className="px-5 py-4 text-sm text-slate-700">
+        <div className="px-5 py-4 text-sm text-stone-700">
           <p>{message}</p>
           {children}
         </div>
 
-        <div className="flex flex-col-reverse gap-3 border-t border-slate-200 px-5 py-4 sm:flex-row sm:justify-end">
+        <div className="flex flex-col-reverse gap-3 border-t border-stone-200 px-5 py-4 sm:flex-row sm:justify-end">
           <Button variant="secondary" disabled={busy} onClick={onCancel}>
             {cancelLabel}
           </Button>

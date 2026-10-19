@@ -520,18 +520,18 @@ export function QuotationForm({
             <SummaryLine label="Hardware Total" value={formatMoney(totals.hardwareTotal)} />
           </dl>
 
-          <div className="mt-3 rounded-md border border-brand-100 bg-brand-50 px-4 py-3">
+          <div className="mt-3 rounded-md border border-stone-200 bg-stone-50 px-4 py-3">
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
-              <span className="text-sm font-semibold text-brand-700">Grand Total</span>
-              <span className="tabular-nums text-xl font-bold text-brand-700">
+              <span className="text-sm font-medium text-stone-700">Grand Total</span>
+              <span className="tabular-nums text-lg font-semibold text-stone-900 sm:text-xl">
                 {formatMoney(totals.grandTotal)}
               </span>
             </div>
           </div>
 
-          <p className="mt-3 text-sm text-slate-600">{amountInWords(totals.grandTotal)}</p>
+          <p className="mt-3 text-sm text-stone-600">{amountInWords(totals.grandTotal)}</p>
           {quotationRateNote(items) ? (
-            <p className="mt-1 text-xs text-slate-500">{quotationRateNote(items)}</p>
+            <p className="mt-1 text-xs text-stone-500">{quotationRateNote(items)}</p>
           ) : null}
         </Card>
 
@@ -562,8 +562,8 @@ export function QuotationForm({
 function SummaryLine({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <dt className="text-slate-600">{label}</dt>
-      <dd className="tabular-nums font-medium text-slate-900">{value}</dd>
+      <dt className="text-stone-500">{label}</dt>
+      <dd className="tabular-nums font-medium text-stone-900">{value}</dd>
     </div>
   )
 }
@@ -575,8 +575,8 @@ function SummaryLine({ label, value }: { label: string; value: string }) {
 function ComputedField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
-      <span className="text-sm font-medium text-slate-700">{label}</span>
-      <p className="tabular-nums w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
+      <span className="text-sm font-medium text-stone-700">{label}</span>
+      <p className="tabular-nums w-full rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-sm text-stone-900">
         {value}
       </p>
     </div>
@@ -607,10 +607,10 @@ function ItemRow({
   const amount = quotationItemAmount(item)
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-md border border-stone-200 bg-white p-4">
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div className="flex flex-wrap items-end gap-3">
-          <span className="flex h-[38px] items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+          <span className="flex h-[38px] items-center rounded-md border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700">
             Item {index + 1}
           </span>
           <div className="w-44 sm:w-52">

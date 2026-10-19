@@ -73,7 +73,7 @@ export function QuotationPreview({
         <button
           type="button"
           onClick={() => downloadQuotationPdf(quotation)}
-          className="rounded-md border border-brand-300 bg-white px-4 py-2 text-sm font-semibold text-brand-700 hover:bg-brand-50"
+          className="rounded-md border border-stone-300 bg-white px-4 py-2 text-sm font-semibold text-stone-800 hover:bg-stone-50"
         >
           Download PDF
         </button>
@@ -94,7 +94,7 @@ export function QuotationPreview({
         <button
           type="button"
           onClick={onClose}
-          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+          className="rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-stone-800"
         >
           {closeLabel}
         </button>

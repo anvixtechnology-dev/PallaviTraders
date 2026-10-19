@@ -16,7 +16,7 @@ import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/types'
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={`rounded-lg border border-slate-200 bg-white shadow-sm ${className}`}
+      className={`rounded-md border border-stone-200 bg-white shadow-sm ${className}`}
     >
       {children}
     </section>
@@ -24,13 +24,11 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 }
 
 export function CardTitle({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return (
-    <h2 className={`text-base font-semibold text-slate-900 ${className || 'mb-4'}`}>{children}</h2>
-  )
+  return <h2 className={`text-base font-semibold text-stone-900 ${className || 'mb-4'}`}>{children}</h2>
 }
 
 const controlClass =
-  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400'
+  'w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-stone-400 focus:ring-1 focus:ring-stone-200 focus:outline-none disabled:bg-stone-50 disabled:text-stone-400'
 
 export function TextInput({
   id,
@@ -184,7 +182,7 @@ export function NumberInput({
         className={`${controlClass} tabular-nums ${suffix ? 'pr-12' : ''} ${invalid ? 'border-red-400' : ''}`}
       />
       {suffix ? (
-        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-400">
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-stone-400">
           {suffix}
         </span>
       ) : null}
@@ -226,7 +224,7 @@ export function Select<T extends string>({
         aria-hidden="true"
         viewBox="0 0 20 20"
         fill="none"
-        className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-slate-400"
+        className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-stone-400"
       >
         <path
           d="M5 7.5 10 12.5 15 7.5"
@@ -255,14 +253,14 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={htmlFor} className="text-sm font-medium text-slate-700">
+      <label htmlFor={htmlFor} className="text-sm font-medium text-stone-700">
         {label}
       </label>
       {children}
       {error ? (
         <p className="text-xs text-red-600">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-slate-500">{hint}</p>
+        <p className="text-xs text-stone-500">{hint}</p>
       ) : null}
     </div>
   )
@@ -290,10 +288,10 @@ export function Button({
     variant === 'primary'
       ? 'bg-brand-600 text-white hover:bg-brand-700'
       : variant === 'success'
-        ? 'bg-green-600 text-white hover:bg-green-700'
+        ? 'bg-emerald-600 text-white hover:bg-emerald-700'
         : variant === 'danger'
-          ? 'bg-red-600 text-white hover:bg-red-700'
-          : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
+          ? 'border border-red-300 bg-white text-red-700 hover:bg-red-50'
+          : 'border border-stone-300 bg-white text-stone-800 hover:bg-stone-50'
 
   return (
     <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles}`}>
@@ -332,5 +330,5 @@ export function PaymentBadge({ status }: { status: PaymentStatus }) {
 }
 
 export function Loading() {
-  return <p className="py-6 text-center text-sm text-slate-500">Loading…</p>
+  return <p className="py-6 text-center text-sm text-stone-500">Loading…</p>
 }

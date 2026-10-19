@@ -100,7 +100,7 @@ export function QuotationsPage() {
         {!loaded ? (
           <Loading />
         ) : filtered.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-slate-500">
+          <p className="px-5 py-8 text-center text-sm text-stone-500">
             {quotations.length === 0
               ? 'No quotations yet. Create one from the Form page.'
               : 'No quotations match that search.'}
@@ -108,60 +108,60 @@ export function QuotationsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="border-b border-stone-200 bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
                 <tr>
-                  <th className="px-4 py-2.5 font-semibold">Quotation No</th>
-                  <th className="px-4 py-2.5 font-semibold">Customer</th>
-                  <th className="px-4 py-2.5 font-semibold">Customer GSTIN</th>
-                  <th className="px-4 py-2.5 font-semibold">Reference</th>
-                  <th className="px-4 py-2.5 font-semibold">Place</th>
-                  <th className="px-4 py-2.5 font-semibold">Date</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Grand Total</th>
-                  <th className="px-4 py-2.5 text-right font-semibold">Actions</th>
+                  <th className="px-4 py-2.5 font-medium">Quotation No</th>
+                  <th className="px-4 py-2.5 font-medium">Customer</th>
+                  <th className="px-4 py-2.5 font-medium">Customer GSTIN</th>
+                  <th className="px-4 py-2.5 font-medium">Reference</th>
+                  <th className="px-4 py-2.5 font-medium">Place</th>
+                  <th className="px-4 py-2.5 font-medium">Date</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Grand Total</th>
+                  <th className="px-4 py-2.5 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((quotation) => (
-                  <tr key={quotation.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <tr key={quotation.id} className="border-b border-stone-100 hover:bg-stone-50/60">
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 font-medium text-slate-900"
+                      className="cursor-pointer px-4 py-2.5 font-medium text-stone-900"
                     >
                       {quotation.quotationNumber}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 text-slate-800"
+                      className="cursor-pointer px-4 py-2.5 text-stone-800"
                     >
                       {quotation.customerName}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 text-slate-600"
+                      className="cursor-pointer px-4 py-2.5 text-stone-600"
                     >
                       {quotation.customerGstNumber || '—'}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 text-slate-600"
+                      className="cursor-pointer px-4 py-2.5 text-stone-600"
                     >
                       {quotation.referenceNumber || '—'}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 text-slate-600"
+                      className="cursor-pointer px-4 py-2.5 text-stone-600"
                     >
                       {quotation.place || '—'}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="cursor-pointer px-4 py-2.5 text-slate-700"
+                      className="cursor-pointer px-4 py-2.5 text-stone-600"
                     >
                       {formatDate(quotation.date)}
                     </td>
                     <td
                       onClick={() => setSelectedId(quotation.id)}
-                      className="tabular-nums cursor-pointer px-4 py-2.5 text-right font-semibold text-slate-900"
+                      className="tabular-nums cursor-pointer px-4 py-2.5 text-right font-medium text-stone-900"
                     >
                       {formatMoney(quotation.grandTotal)}
                     </td>

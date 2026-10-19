@@ -5,22 +5,20 @@
     'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
     Arial, sans-serif;
 
-  --color-brand-50: #eff6ff;
-  --color-brand-100: #dbeafe;
-  --color-brand-600: #2563eb;
-  --color-brand-700: #1d4ed8;
+  --color-page: #F5F5F4;
+  --color-brand-600: #334155;
+  --color-brand-700: #1e293b;
 }
 
 @layer base {
   body {
-    @apply bg-slate-100 font-sans text-slate-800 antialiased;
+    @apply bg-page font-sans text-stone-900 antialiased;
   }
 
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-brand-600;
   }
 
-  /* Hide the native number spinners: quantity and price are plain number fields. */
   input[type='number']::-webkit-outer-spin-button,
   input[type='number']::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -33,9 +31,7 @@
 }
 
 @layer utilities {
-  .tabular-nums {
-    font-variant-numeric: tabular-nums;
-  }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
 
   /* Keep the blue/gold quotation colours when printing. */
   .print-exact {

@@ -39,17 +39,17 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-slate-100 px-4">
+    <div className="flex min-h-dvh items-center justify-center bg-page px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <h1 className="text-xl font-bold tracking-wide text-slate-900">PALLAVI IRON TRADERS</h1>
-          <p className="mt-1 text-sm text-slate-600">Sign in to continue</p>
+          <h1 className="text-xl font-bold tracking-wide text-stone-900">PALLAVI IRON TRADERS</h1>
+          <p className="mt-1 text-sm text-stone-600">Sign in to continue</p>
         </div>
 
         {/* noValidate: the browser's own email check silently refuses to submit on a
             stray space or a pasted character, which looks like a dead button. Checking
             here instead means a bad entry always produces a visible message. */}
-        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4 rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
           <Field label="Email" htmlFor="email">
             <TextInput
               id="email"
@@ -74,7 +74,7 @@ export function LoginPage() {
           {error ? <Banner tone="error">{error}</Banner> : null}
 
           {setupProblem ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-stone-500">
               Enable <strong>Email/Password</strong> under Firebase console → Authentication → Sign-in
               method, then create an admin user under Authentication → Users.
             </p>
