@@ -1,20 +1,9 @@
-/**
- * Quotation PDF generation.
- *
- * Uses jsPDF with the AutoTable plugin to produce a real, selectable A4
- * portrait PDF (not a screenshot), matching the on-screen preview: blue
- * headings, gold accents, category tables and cream total rows. Multi-page
- * quotations are handled by AutoTable.
- *
- * Note: the standard PDF fonts have no rupee glyph, so the PDF uses `Rs.`
- * where the on-screen preview and print view use `₹`.
- */
 
 import { jsPDF } from 'jspdf'
 import autoTable, { type RowInput } from 'jspdf-autotable'
 
 import type { Quotation } from '@/types'
-import { BUSINESS, quotationPdfFileName, quotationRateNote, quotationTableRows } from './quotations'
+import { BUSINESS, quotationPdfFileName, GST_NOTE, quotationTableRows } from './quotations'
 import { formatDate } from './dates'
 import { formatNumber } from './money'
 
@@ -214,7 +203,7 @@ function drawGrandTotal(doc: jsPDF, quotation: Quotation, startY: number): numbe
   y += 8
   doc.setFontSize(7.5)
   doc.setTextColor(...MUTED)
-  doc.text(quotationRateNote(quotation.items), MARGIN, y, { maxWidth: CONTENT_WIDTH })
+  doc.text(GST_NOTE, MARGIN, y, { maxWidth: CONTENT_WIDTH })
   y += 10
 
   return y

@@ -1,10 +1,4 @@
-/**
- * Sale form validation.
- *
- * Validation lives in the service layer as well as the form so that a record can
- * never reach Firestore with a bad grand total, a negative quantity or a payment
- * status that contradicts the amount paid.
- */
+
 
 import { z } from 'zod'
 

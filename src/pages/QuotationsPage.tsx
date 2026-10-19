@@ -1,10 +1,3 @@
-/**
- * Saved quotations screen.
- *
- * A searchable list of every saved quotation. Click a quotation to preview it,
- * print, download or share. Edit opens the form pre-filled with its data;
- * Delete removes the document from Firestore after confirmation.
- */
 
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'

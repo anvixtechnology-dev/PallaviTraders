@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { Quotation } from '@/types'
-import { BUSINESS, quotationRateNote, quotationTableRows } from '@/lib/quotations'
+import { BUSINESS, GST_NOTE, quotationTableRows } from '@/lib/quotations'
 import { downloadQuotationPdf } from '@/lib/quotation-pdf'
 import { formatDate } from '@/lib/dates'
 import { formatMoney } from '@/lib/money'
@@ -195,7 +195,7 @@ export function QuotationPreview({
           <span className="font-semibold">Amount in Words: </span>
           {quotation.amountInWords}
         </p>
-        <p className="mt-1 text-xs text-slate-600">{quotationRateNote(quotation.items)}</p>
+        <p className="mt-1 text-xs text-slate-600">{GST_NOTE}</p>
 
         <div className="mt-12 flex justify-end">
           <div className="text-center text-xs">

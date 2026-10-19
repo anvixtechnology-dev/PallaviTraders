@@ -36,7 +36,7 @@ import {
   normaliseCustomerGst,
   quotationItemAmount,
   quotationItemWeight,
-  quotationRateNote,
+  GST_NOTE,
   validateQuotation,
 } from '@/lib/quotations'
 import { amountInWords } from '@/lib/words'
@@ -530,8 +530,8 @@ export function QuotationForm({
           </div>
 
           <p className="mt-3 text-sm text-stone-600">{amountInWords(totals.grandTotal)}</p>
-          {quotationRateNote(items) ? (
-            <p className="mt-1 text-xs text-stone-500">{quotationRateNote(items)}</p>
+          {GST_NOTE ? (
+            <p className="mt-1 text-xs text-stone-500">{GST_NOTE}</p>
           ) : null}
         </Card>
 
@@ -754,12 +754,12 @@ function SheetsFields({
       </Field>
 
       <Field
-        label="Weight per Foot (Kg)"
-        htmlFor={`weightPerFoot-${line.key}`}
-        error={error('weightPerFootKg')}
+        label="Weight per Feet (Kg)"
+        htmlFor={`weightPerFeet-${line.key}`}
+        error={error('weightPerFeetKg')}
       >
         <NumberInput
-          id={`weightPerFoot-${line.key}`}
+          id={`weightPerFeet-${line.key}`}
           value={line.weightPerFoot}
           onChange={(value) => onChange(line.key, { weightPerFoot: value })}
           placeholder="0.00"

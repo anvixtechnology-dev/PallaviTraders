@@ -456,29 +456,8 @@ export function validateQuotation(input: QuotationInput): QuotationValidationRes
  * Notes, WhatsApp                                                      *
  * ------------------------------------------------------------------ */
 
-function rate(value: number): string {
-  const text = formatNumber(value, 2)
-  return text.endsWith('.00') ? text.slice(0, -3) : text
-}
-
-/** The GST/rate note printed under the tables. */
-export function quotationRateNote(items: readonly QuotationItemInput[]): string {
-  const rates = new Set<number>()
-  for (const item of items) {
-    if (item.category === 'pipes' || item.category === 'sheets') {
-      if (item.ratePerKg > 0) rates.add(roundMoney(item.ratePerKg))
-    }
-  }
-
-  const list = [...rates]
-  if (list.length === 0) {
-    return 'GST, if applicable, will be charged as per invoice.'
-  }
-  if (list.length === 1) {
-    return `Rate quoted is ₹${rate(list[0])} per Kg. GST, if applicable, will be charged as per invoice.`
-  }
-  return `Rates quoted are ${list.map((value) => `₹${rate(value)}`).join(', ')} per Kg. GST, if applicable, will be charged as per invoice.`
-}
+/** The GST note printed under the tables. Rates are GST-inclusive. */
+export const GST_NOTE = 'Rates are inclusive of CGST 9% + SGST 9%.'
 
 /** Pre-filled WhatsApp message: business, number, customer and grand total. */
 export function quotationWhatsAppMessage(quotation: Quotation): string {
