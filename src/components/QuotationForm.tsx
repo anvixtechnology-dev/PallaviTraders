@@ -679,7 +679,7 @@ function PipesFields({
           value={line.size}
           onChange={(value) => onChange(line.key, { size: value })}
           options={ROUND_SIZE_OPTIONS}
-          placeholder="Select or type a size"
+          placeholder="Select pipe size"
           invalid={Boolean(error('size'))}
         />
       </Field>

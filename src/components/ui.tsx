@@ -5,7 +5,8 @@
  * colour change on hover.
  */
 
-import type { ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent, ReactNode } from 'react'
 
 import { PAYMENT_STATUS_LABELS, type PaymentStatus } from '@/types'
 
@@ -68,8 +69,13 @@ export function TextInput({
 
 /**
  * An editable, searchable dropdown: pick one of `options` or type a custom
- * value. Backed by a native `<datalist>`, so the chosen/typed value is always
- * free text and is never forced to match an existing option.
+ * value. The open list is drawn in-app (not a native `<datalist>` popup) so it
+ * always follows the form's light theme: white background, dark text, a subtle
+ * border and no heavy shadow. Typed input is never forced to match an option,
+ * so custom sizes are preserved.
+ *
+ * Styled like {@link Select} — same control height, padding, border and a
+ * chevron on the right — so it lines up with the rest of the form.
  */
 export function Combobox({
   id,
@@ -88,30 +94,170 @@ export function Combobox({
   disabled?: boolean
   invalid?: boolean
 }) {
+  const [open, setOpen] = useState(false)
+  const [activeIndex, setActiveIndex] = useState(-1)
+  const [openAbove, setOpenAbove] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLUListElement>(null)
+
   const listId = id ? `${id}-list` : undefined
+  const trimmed = value.trim()
+
+  // Show every option until the text stops matching one, then filter by it.
+  const filtered = useMemo(() => {
+    if (!trimmed || options.some((option) => option.value === trimmed)) return options
+    const query = trimmed.toLowerCase()
+    return options.filter(
+      (option) =>
+        option.label.toLowerCase().includes(query) || option.value.toLowerCase().includes(query),
+    )
+  }, [options, trimmed])
+
+  // Close when clicking outside the control.
+  useEffect(() => {
+    if (!open) return
+    function onPointerDown(event: MouseEvent) {
+      if (!wrapperRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointerDown)
+    return () => document.removeEventListener('mousedown', onPointerDown)
+  }, [open])
+
+  // Open downwards, flipping up only when there is not enough room below.
+  useEffect(() => {
+    if (!open) return
+    function reposition() {
+      const rect = wrapperRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const below = window.innerHeight - rect.bottom
+      const above = rect.top
+      setOpenAbove(below < 200 && above > below)
+    }
+    reposition()
+    window.addEventListener('resize', reposition)
+    return () => window.removeEventListener('resize', reposition)
+  }, [open])
+
+  // Keep the highlighted option in view while arrowing through the list.
+  useEffect(() => {
+    if (!open || activeIndex < 0) return
+    listRef.current
+      ?.querySelector(`[data-index="${activeIndex}"]`)
+      ?.scrollIntoView({ block: 'nearest' })
+  }, [open, activeIndex])
+
+  function choose(option: { value: string; label: string }) {
+    onChange(option.value)
+    setOpen(false)
+    setActiveIndex(-1)
+  }
+
+  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault()
+      if (!open) {
+        setOpen(true)
+        setActiveIndex(event.key === 'ArrowDown' ? 0 : filtered.length - 1)
+        return
+      }
+      setActiveIndex((current) => {
+        const count = filtered.length
+        if (count === 0) return -1
+        const step = event.key === 'ArrowDown' ? 1 : -1
+        return current < 0 ? (step > 0 ? 0 : count - 1) : (current + step + count) % count
+      })
+      return
+    }
+    if (event.key === 'Enter') {
+      if (!open) return
+      event.preventDefault()
+      if (activeIndex >= 0 && filtered[activeIndex]) choose(filtered[activeIndex])
+      else setOpen(false)
+      return
+    }
+    if (event.key === 'Escape') {
+      if (open) {
+        event.preventDefault()
+        setOpen(false)
+      }
+      return
+    }
+    if (event.key === 'Tab') setOpen(false)
+  }
 
   return (
-    <>
+    <div ref={wrapperRef} className="relative w-full min-w-0">
       <input
         id={id}
         type="text"
-        list={listId}
+        role="combobox"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-autocomplete="list"
+        autoComplete="off"
         value={value}
         placeholder={placeholder}
         disabled={disabled}
-        onChange={(event) => onChange(event.target.value)}
-        className={`${controlClass} ${invalid ? 'border-red-400' : ''}`}
+        onChange={(event) => {
+          onChange(event.target.value)
+          setActiveIndex(-1)
+          if (!open) setOpen(true)
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={onKeyDown}
+        className={`${controlClass} pr-9 ${invalid ? 'border-red-400' : ''}`}
       />
-      {listId ? (
-        <datalist id={listId}>
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </datalist>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        fill="none"
+        className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-stone-400"
+      >
+        <path
+          d="M5 7.5 10 12.5 15 7.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+
+      {open && !disabled ? (
+        <ul
+          ref={listRef}
+          id={listId}
+          role="listbox"
+          className={`absolute left-0 right-0 z-30 max-h-56 overflow-y-auto overflow-x-hidden overscroll-contain rounded-md border border-stone-200 bg-white py-1 shadow-sm ${
+            openAbove ? 'bottom-[calc(100%+4px)]' : 'top-[calc(100%+4px)]'
+          }`}
+        >
+          {filtered.length === 0 ? (
+            <li className="px-3 py-2 text-sm text-stone-500">No matching size</li>
+          ) : (
+            filtered.map((option, index) => {
+              const selected = option.value === value
+              const active = index === activeIndex
+              return (
+                <li
+                  key={option.value}
+                  data-index={index}
+                  role="option"
+                  aria-selected={selected}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  onClick={() => choose(option)}
+                  className={`cursor-pointer px-3 py-2.5 text-sm text-stone-900 ${
+                    active ? 'bg-stone-100' : ''
+                  } ${selected ? 'font-medium' : ''}`}
+                >
+                  {option.label}
+                </li>
+              )
+            })
+          )}
+        </ul>
       ) : null}
-    </>
+    </div>
   )
 }
 
