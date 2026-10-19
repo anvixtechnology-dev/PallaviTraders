@@ -174,13 +174,38 @@ export interface SheetItemInput {
   ratePerKg: number
 }
 
-/** A hardware line, priced per piece rather than per kg. */
-export interface HardwareItemInput {
+/**
+ * Hardware comes in two flavours: piece-based (the original behaviour) or
+ * plate-based, which is priced by weight instead.
+ */
+export const HARDWARE_TYPES = ['none', 'plate'] as const
+export type HardwareType = (typeof HARDWARE_TYPES)[number]
+
+export const HARDWARE_TYPE_LABELS: Record<HardwareType, string> = {
+  none: 'None',
+  plate: 'Plate',
+}
+
+/** A piece-based hardware line, priced per piece. */
+export interface PieceHardwareItemInput {
   category: 'hardware'
+  hardwareType: 'none'
   description: string
   pieces: number
   ratePerPiece: number
 }
+
+/** A plate-based hardware line, priced per kg. */
+export interface PlateHardwareItemInput {
+  category: 'hardware'
+  hardwareType: 'plate'
+  description: string
+  weightKg: number
+  ratePerKg: number
+}
+
+/** A hardware line, priced per piece or per kg depending on its type. */
+export type HardwareItemInput = PieceHardwareItemInput | PlateHardwareItemInput
 
 /** One line of a quotation before it is validated and stored. */
 export type QuotationItemInput = PipeItemInput | SheetItemInput | HardwareItemInput
@@ -195,10 +220,15 @@ export interface SheetItem extends SheetItemInput {
   totalWeightKg: number
   amount: number
 }
-/** A hardware line as stored, with its calculated amount. */
-export interface HardwareItem extends HardwareItemInput {
+/** A piece-based hardware line as stored, with its calculated amount. */
+export interface PieceHardwareItem extends PieceHardwareItemInput {
   amount: number
 }
+/** A plate-based hardware line as stored, with its calculated amount. */
+export interface PlateHardwareItem extends PlateHardwareItemInput {
+  amount: number
+}
+export type HardwareItem = PieceHardwareItem | PlateHardwareItem
 export type QuotationItem = PipeItem | SheetItem | HardwareItem
 
 /** Category subtotals plus the grand total. */

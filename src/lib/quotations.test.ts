@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
 import type {
-  HardwareItemInput,
+  PieceHardwareItemInput,
   PipeItemInput,
+  PlateHardwareItemInput,
   QuotationInput,
   SheetItemInput,
 } from '@/types'
@@ -51,12 +52,24 @@ function sheet(overrides: Partial<SheetItemInput> = {}): SheetItemInput {
   }
 }
 
-function hardware(overrides: Partial<HardwareItemInput> = {}): HardwareItemInput {
+function hardware(overrides: Partial<PieceHardwareItemInput> = {}): PieceHardwareItemInput {
   return {
     category: 'hardware',
+    hardwareType: 'none',
     description: 'Nails',
     pieces: 10,
     ratePerPiece: 10,
+    ...overrides,
+  }
+}
+
+function plateHardware(overrides: Partial<PlateHardwareItemInput> = {}): PlateHardwareItemInput {
+  return {
+    category: 'hardware',
+    hardwareType: 'plate',
+    description: 'MS Plate',
+    weightKg: 12,
+    ratePerKg: 50,
     ...overrides,
   }
 }
@@ -131,8 +144,12 @@ describe('sheet calculations', () => {
 })
 
 describe('hardware calculations', () => {
-  it('amount = pieces x rate per piece', () => {
+  it('piece-based amount = pieces x rate per piece', () => {
     expect(hardwareAmount(hardware())).toBe(100)
+  })
+
+  it('plate-based amount = weight (kg) x rate per kg', () => {
+    expect(hardwareAmount(plateHardware())).toBe(600)
   })
 })
 
@@ -161,6 +178,22 @@ describe('buildQuotation', () => {
     expect(quotation.items[0]).toMatchObject({ totalWeightKg: 100, amount: 8600 })
     expect(quotation.grandTotal).toBe(9775)
     expect(quotation.amountInWords).toBe('Rupees Nine Thousand Seven Hundred Seventy Five Only')
+  })
+
+  it('stores the hardware type and recalculates totals for plate hardware', () => {
+    const quotation = buildQuotation(input({ items: [pipe(), plateHardware()] }))
+    const stored = quotation.items[1]
+    expect(stored).toMatchObject({
+      category: 'hardware',
+      hardwareType: 'plate',
+      description: 'MS Plate',
+      weightKg: 12,
+      ratePerKg: 50,
+      amount: 600,
+    })
+    expect(quotation.hardwareTotal).toBe(600)
+    expect(quotation.grandTotal).toBe(9200)
+    expect(quotation.amountInWords).toBe('Rupees Nine Thousand Two Hundred Only')
   })
 
   it('keeps the optional customer GST number separate from the shop GSTIN', () => {
@@ -238,6 +271,25 @@ describe('validateQuotation', () => {
     if (!result.ok) expect(result.fieldErrors['item.0.pieces']).toBeDefined()
   })
 
+  it('requires a weight and rejects negatives for plate hardware', () => {
+    const missing = validateQuotation(input({ items: [plateHardware({ weightKg: 0 })] }))
+    expect(missing.ok).toBe(false)
+    if (!missing.ok) expect(missing.fieldErrors['item.0.weightKg']).toBeDefined()
+
+    const negative = validateQuotation(
+      input({ items: [plateHardware({ weightKg: -1, ratePerKg: -5 })] }),
+    )
+    expect(negative.ok).toBe(false)
+    if (!negative.ok) {
+      expect(negative.fieldErrors['item.0.weightKg']).toBeDefined()
+      expect(negative.fieldErrors['item.0.ratePerKg']).toBeDefined()
+    }
+  })
+
+  it('accepts a valid plate hardware item', () => {
+    expect(validateQuotation(input({ items: [plateHardware()] })).ok).toBe(true)
+  })
+
   it('requires a hardware description but not for pipes or sheets', () => {
     const hardwareResult = validateQuotation(input({ items: [hardware({ description: '  ' })] }))
     expect(hardwareResult.ok).toBe(false)
@@ -298,6 +350,12 @@ describe('quotationTableRows', () => {
   it('renders a hardware-only quotation in the unified columns', () => {
     expect(rowsFor([hardware()])).toEqual([
       ['1', 'Hardware', 'Nails', EMPTY_CELL, EMPTY_CELL, EMPTY_CELL, '10', '10.00', '100.00'],
+    ])
+  })
+
+  it('renders plate hardware with weight and rate per kg, leaving pieces blank', () => {
+    expect(rowsFor([plateHardware()])).toEqual([
+      ['1', 'Hardware', 'MS Plate', EMPTY_CELL, EMPTY_CELL, '12.00', EMPTY_CELL, '50.00', '600.00'],
     ])
   })
 

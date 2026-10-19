@@ -4,18 +4,25 @@
  * A quotation is a commercial offer, not a sale, so saving one never touches
  * stock. Each line has a category (Pipes / Sheets / Hardware) that reveals only
  * the fields that category needs; weights and amounts are recalculated live.
+ *
+ * With an `editId`, the same form opens a saved quotation, populates every
+ * field from Firestore, and saves back over the original document.
  */
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import type {
+  HardwareType,
   ItemCategory,
   PipeType,
   Quotation,
   QuotationInput,
+  QuotationItem,
   QuotationItemInput,
 } from '@/types'
 import {
+  HARDWARE_TYPES,
+  HARDWARE_TYPE_LABELS,
   ITEM_CATEGORIES,
   ITEM_CATEGORY_LABELS,
   PIPE_TYPES,
@@ -37,7 +44,11 @@ import { formatMoney, formatNumber, parseNumericInput } from '@/lib/money'
 import { today } from '@/lib/dates'
 import { toErrorMessage, toFieldErrors } from '@/lib/errors'
 import { useQuotations } from '@/hooks/useQuotations'
-import { createQuotation, suggestQuotationNumber } from '@/services/quotations.service'
+import {
+  createQuotation,
+  suggestQuotationNumber,
+  updateQuotation,
+} from '@/services/quotations.service'
 import { QuotationPreview } from '@/components/QuotationPreview'
 import {
   Banner,
@@ -77,9 +88,12 @@ interface SheetLineState {
 interface HardwareLineState {
   key: number
   category: 'hardware'
+  hardwareType: HardwareType
   description: string
   pieces: string
   ratePerPiece: string
+  weight: string
+  ratePerKg: string
 }
 
 type LineState = PipeLineState | SheetLineState | HardwareLineState
@@ -112,7 +126,16 @@ function newLine(category: ItemCategory, key = lineCounter++): LineState {
       ratePerKg: '',
     }
   }
-  return { key, category: 'hardware', description: '', pieces: '', ratePerPiece: '' }
+  return {
+    key,
+    category: 'hardware',
+    hardwareType: 'none',
+    description: '',
+    pieces: '',
+    ratePerPiece: '',
+    weight: '',
+    ratePerKg: '',
+  }
 }
 
 function toItemInput(line: LineState): QuotationItemInput {
@@ -135,17 +158,86 @@ function toItemInput(line: LineState): QuotationItemInput {
       ratePerKg: parseNumericInput(line.ratePerKg),
     }
   }
+  if (line.hardwareType === 'plate') {
+    return {
+      category: 'hardware',
+      hardwareType: 'plate',
+      description: line.description,
+      weightKg: parseNumericInput(line.weight),
+      ratePerKg: parseNumericInput(line.ratePerKg),
+    }
+  }
   return {
     category: 'hardware',
+    hardwareType: 'none',
     description: line.description,
     pieces: parseNumericInput(line.pieces),
     ratePerPiece: parseNumericInput(line.ratePerPiece),
   }
 }
 
+/** Render a stored number as editable text; blank out zeroes. */
+function numberToInput(value: number): string {
+  return value ? String(value) : ''
+}
+
+/** Turn a saved quotation item back into editable line state. */
+function itemToLine(item: QuotationItem): LineState {
+  const key = lineCounter++
+
+  if (item.category === 'pipes') {
+    return {
+      key,
+      category: 'pipes',
+      pipeType: item.pipeType,
+      size: item.size,
+      weightPerPipe: numberToInput(item.weightPerPipeKg),
+      quantity: numberToInput(item.quantity),
+      ratePerKg: numberToInput(item.ratePerKg),
+    }
+  }
+  if (item.category === 'sheets') {
+    return {
+      key,
+      category: 'sheets',
+      lengthFt: numberToInput(item.lengthFt) || '10',
+      weightPerFoot: numberToInput(item.weightPerFootKg),
+      quantity: numberToInput(item.quantity) || '1',
+      ratePerKg: numberToInput(item.ratePerKg),
+    }
+  }
+  if (item.hardwareType === 'plate') {
+    return {
+      key,
+      category: 'hardware',
+      hardwareType: 'plate',
+      description: item.description,
+      pieces: '',
+      ratePerPiece: '',
+      weight: numberToInput(item.weightKg),
+      ratePerKg: numberToInput(item.ratePerKg),
+    }
+  }
+  return {
+    key,
+    category: 'hardware',
+    hardwareType: 'none',
+    description: item.description,
+    pieces: numberToInput(item.pieces),
+    ratePerPiece: numberToInput(item.ratePerPiece),
+    weight: '',
+    ratePerKg: '',
+  }
+}
+
 const CATEGORY_OPTIONS = ITEM_CATEGORIES.map((value) => ({
   value,
   label: ITEM_CATEGORY_LABELS[value],
+}))
+
+const HARDWARE_TYPE_OPTIONS = HARDWARE_TYPES.map((value) => ({
+  value,
+  label: HARDWARE_TYPE_LABELS[value],
 }))
 
 const PIPE_TYPE_OPTIONS = PIPE_TYPES.map((value) => ({
@@ -167,8 +259,16 @@ const SHEET_LENGTH_OPTIONS = SHEET_LENGTHS.map((value) => ({
  * Form                                                                *
  * ------------------------------------------------------------------ */
 
-export function QuotationForm() {
-  const { quotations } = useQuotations()
+export function QuotationForm({
+  editId = null,
+  onCancel,
+}: {
+  /** Firestore document id of a saved quotation to edit; null to create. */
+  editId?: string | null
+  /** Called by the Cancel button while editing. */
+  onCancel?: () => void
+}) {
+  const { quotations, loaded } = useQuotations()
 
   const [quotationNumber, setQuotationNumber] = useState('')
   const [numberTouched, setNumberTouched] = useState(false)
@@ -178,6 +278,8 @@ export function QuotationForm() {
   const [place, setPlace] = useState('')
   const [date, setDate] = useState(today())
   const [lines, setLines] = useState<LineState[]>([newLine('pipes')])
+  const [initialised, setInitialised] = useState(false)
+  const lockedId = useRef<string | null>(null)
 
   const [saving, setSaving] = useState(false)
   const [savedMessage, setSavedMessage] = useState<string | null>(null)
@@ -190,6 +292,38 @@ export function QuotationForm() {
 
   const items: QuotationItemInput[] = useMemo(() => lines.map(toItemInput), [lines])
   const totals = useMemo(() => computeTotals(items), [items])
+
+  // Populate the form from a saved quotation when editing.
+  if (editId && loaded && !initialised && lockedId.current !== editId) {
+    const target = quotations.find((q) => q.id === editId)
+    if (target) {
+      setNumberTouched(true)
+      setQuotationNumber(target.quotationNumber)
+      setCustomerName(target.customerName)
+      setCustomerGstNumber(target.customerGstNumber)
+      setReferenceNumber(target.referenceNumber)
+      setPlace(target.place)
+      setDate(target.date)
+      lineCounter = 0
+      setLines(target.items.map(itemToLine))
+      setPreview(null)
+      setSavedMessage(null)
+      setFormError(null)
+      setFieldErrors({})
+      lockedId.current = editId
+      setInitialised(true)
+    }
+  }
+
+  if (editId && loaded && initialised && lockedId.current !== editId) {
+    lockedId.current = null
+    setInitialised(false)
+  }
+
+  if (!editId && initialised) {
+    lockedId.current = null
+    setInitialised(false)
+  }
 
   function updateLine(key: number, patch: LinePatch) {
     setSavedMessage(null)
@@ -241,9 +375,15 @@ export function QuotationForm() {
     }
 
     try {
-      const saved = await createQuotation(input)
-      setPreview(saved)
-      setSavedMessage(`Quotation ${saved.quotationNumber} saved.`)
+      if (editId) {
+        const saved = await updateQuotation(editId, input)
+        setPreview(saved)
+        setSavedMessage(`Quotation ${saved.quotationNumber} updated.`)
+      } else {
+        const saved = await createQuotation(input)
+        setPreview(saved)
+        setSavedMessage(`Quotation ${saved.quotationNumber} saved.`)
+      }
     } catch (error) {
       setFieldErrors(toFieldErrors(error))
       setFormError(toErrorMessage(error, 'Could not save this quotation. Please try again.'))
@@ -263,8 +403,12 @@ export function QuotationForm() {
       >
         <Card className="p-5">
           <CardTitle>Quotation Details</CardTitle>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Quotation Number" htmlFor="quotationNumber" error={fieldErrors.quotationNumber}>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+            <Field
+              label="Quotation Number"
+              htmlFor="quotationNumber"
+              error={fieldErrors.quotationNumber}
+            >
               <TextInput
                 id="quotationNumber"
                 value={effectiveNumber}
@@ -277,7 +421,21 @@ export function QuotationForm() {
               />
             </Field>
 
-            <Field label="Customer Name" htmlFor="qCustomerName" error={fieldErrors.customerName}>
+            <Field label="Date" htmlFor="qDate" error={fieldErrors.date}>
+              <TextInput
+                id="qDate"
+                type="date"
+                value={date}
+                onChange={setDate}
+                invalid={Boolean(fieldErrors.date)}
+              />
+            </Field>
+
+            <Field
+              label="Customer Name"
+              htmlFor="qCustomerName"
+              error={fieldErrors.customerName}
+            >
               <TextInput
                 id="qCustomerName"
                 value={customerName}
@@ -319,22 +477,12 @@ export function QuotationForm() {
                 placeholder="e.g. Bhimavaram"
               />
             </Field>
-
-            <Field label="Date" htmlFor="qDate" error={fieldErrors.date}>
-              <TextInput
-                id="qDate"
-                type="date"
-                value={date}
-                onChange={setDate}
-                invalid={Boolean(fieldErrors.date)}
-              />
-            </Field>
           </div>
         </Card>
 
         <Card className="p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <CardTitle>Items</CardTitle>
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <CardTitle className="mb-0">Items</CardTitle>
             <Button
               variant="secondary"
               onClick={() => setLines((current) => [...current, newLine('pipes')])}
@@ -362,22 +510,29 @@ export function QuotationForm() {
           {fieldErrors.items ? (
             <p className="mt-3 text-xs text-red-600">{fieldErrors.items}</p>
           ) : null}
+        </Card>
 
-          <div className="mt-4 border-t border-slate-200 pt-4">
-            <dl className="flex flex-col gap-1.5 text-sm">
-              <SummaryLine label="Pipes Total" value={formatMoney(totals.pipesTotal)} />
-              <SummaryLine label="Sheets Total" value={formatMoney(totals.sheetsTotal)} />
-              <SummaryLine label="Hardware Total" value={formatMoney(totals.hardwareTotal)} />
-            </dl>
-            <div className="mt-2 flex items-baseline justify-between border-t border-slate-200 pt-2">
-              <span className="text-sm font-semibold text-slate-700">Grand Total</span>
-              <span className="tabular-nums text-xl font-bold text-slate-900">
+        <Card className="p-5">
+          <CardTitle>Summary</CardTitle>
+          <dl className="flex flex-col gap-2 text-sm">
+            <SummaryLine label="Pipes Total" value={formatMoney(totals.pipesTotal)} />
+            <SummaryLine label="Sheets Total" value={formatMoney(totals.sheetsTotal)} />
+            <SummaryLine label="Hardware Total" value={formatMoney(totals.hardwareTotal)} />
+          </dl>
+
+          <div className="mt-3 rounded-md border border-brand-100 bg-brand-50 px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+              <span className="text-sm font-semibold text-brand-700">Grand Total</span>
+              <span className="tabular-nums text-xl font-bold text-brand-700">
                 {formatMoney(totals.grandTotal)}
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500">{amountInWords(totals.grandTotal)}</p>
-            <p className="mt-1 text-xs text-slate-500">{quotationRateNote(items)}</p>
           </div>
+
+          <p className="mt-3 text-sm text-slate-600">{amountInWords(totals.grandTotal)}</p>
+          {quotationRateNote(items) ? (
+            <p className="mt-1 text-xs text-slate-500">{quotationRateNote(items)}</p>
+          ) : null}
         </Card>
 
         {formError ? <Banner tone="error">{formError}</Banner> : null}
@@ -385,11 +540,16 @@ export function QuotationForm() {
 
         <div className="flex flex-wrap gap-3">
           <Button type="submit" disabled={saving}>
-            {saving ? 'Saving…' : 'Generate Quotation'}
+            {saving ? 'Saving…' : editId ? 'Save Changes' : 'Generate Quotation'}
           </Button>
           <Button variant="secondary" disabled={saving} onClick={() => void buildAndMaybeSave(false)}>
             Preview Quotation
           </Button>
+          {editId && onCancel ? (
+            <Button variant="secondary" disabled={saving} onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : null}
         </div>
       </form>
 
@@ -401,18 +561,22 @@ export function QuotationForm() {
 /** A label/value row in the form's totals summary. */
 function SummaryLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex items-center justify-between gap-4">
       <dt className="text-slate-600">{label}</dt>
-      <dd className="tabular-nums text-slate-900">{value}</dd>
+      <dd className="tabular-nums font-medium text-slate-900">{value}</dd>
     </div>
   )
 }
 
-function ReadOnlyField({ label, value }: { label: string; value: string }) {
+/**
+ * A calculated, read-only value rendered like an input so it lines up with
+ * the editable fields in the same grid.
+ */
+function ComputedField({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-sm font-medium text-slate-700">{label}</span>
-      <p className="tabular-nums rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
+      <p className="tabular-nums w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
         {value}
       </p>
     </div>
@@ -443,68 +607,40 @@ function ItemRow({
   const amount = quotationItemAmount(item)
 
   return (
-    <div className="rounded-md border border-slate-200 p-3">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label="Item Category" htmlFor={`category-${line.key}`}>
-          <Select
-            id={`category-${line.key}`}
-            value={line.category}
-            onChange={(value) => onChangeCategory(line.key, value)}
-            options={CATEGORY_OPTIONS}
-          />
-        </Field>
-
-        {line.category === 'hardware' ? (
-          <Field
-            label="Description"
-            htmlFor={`description-${line.key}`}
-            error={error('description')}
-          >
-            <TextInput
-              id={`description-${line.key}`}
-              value={line.description}
-              onChange={(value) => onChange(line.key, { description: value })}
-              placeholder="e.g. Nails"
-              invalid={Boolean(error('description'))}
-            />
-          </Field>
-        ) : null}
-
-        {line.category === 'pipes' ? (
-          <Field label="Pipe Type" htmlFor={`pipeType-${line.key}`}>
-            <Select
-              id={`pipeType-${line.key}`}
-              value={line.pipeType}
-              onChange={(value) => onChange(line.key, { pipeType: value, size: '' })}
-              options={PIPE_TYPE_OPTIONS}
-            />
-          </Field>
-        ) : null}
-      </div>
-
-      {line.category === 'pipes' ? (
-        <PipesFields line={line} onChange={onChange} error={error} />
-      ) : null}
-      {line.category === 'sheets' ? (
-        <SheetsFields line={line} onChange={onChange} error={error} />
-      ) : null}
-      {line.category === 'hardware' ? (
-        <HardwareFields line={line} onChange={onChange} error={error} />
-      ) : null}
-
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-slate-100 pt-3">
-        <div className="flex flex-wrap gap-3">
-          {line.category === 'pipes' || line.category === 'sheets' ? (
-            <ReadOnlyField label="Total Weight (Kg)" value={formatNumber(weight)} />
-          ) : null}
-          <ReadOnlyField label="Amount" value={formatMoney(amount)} />
+    <div className="rounded-lg border border-slate-200 bg-white p-4">
+      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <span className="flex h-[38px] items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700">
+            Item {index + 1}
+          </span>
+          <div className="w-44 sm:w-52">
+            <Field label="Category" htmlFor={`category-${line.key}`}>
+              <Select
+                id={`category-${line.key}`}
+                value={line.category}
+                onChange={(value) => onChangeCategory(line.key, value)}
+                options={CATEGORY_OPTIONS}
+              />
+            </Field>
+          </div>
         </div>
+
         {canRemove ? (
           <Button variant="danger" onClick={() => onRemove(line.key)}>
             Remove
           </Button>
         ) : null}
       </div>
+
+      {line.category === 'pipes' ? (
+        <PipesFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+      ) : null}
+      {line.category === 'sheets' ? (
+        <SheetsFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+      ) : null}
+      {line.category === 'hardware' ? (
+        <HardwareFields line={line} onChange={onChange} error={error} amount={amount} />
+      ) : null}
     </div>
   )
 }
@@ -513,36 +649,40 @@ function PipesFields({
   line,
   onChange,
   error,
+  weight,
+  amount,
 }: {
   line: PipeLineState
   onChange: (key: number, patch: LinePatch) => void
   error: (field: string) => string | undefined
+  weight: number
+  amount: number
 }) {
   return (
-    <div className="mt-3 grid gap-3 sm:grid-cols-4">
-      {line.pipeType === 'round' ? (
-        <Field label="Pipe Size" htmlFor={`size-${line.key}`} error={error('size')}>
-          <Combobox
-            id={`size-${line.key}`}
-            value={line.size}
-            onChange={(value) => onChange(line.key, { size: value })}
-            options={ROUND_SIZE_OPTIONS}
-            placeholder="Select or type a size"
-            invalid={Boolean(error('size'))}
-          />
-        </Field>
-      ) : (
-        <Field label="Box Pipe Size" htmlFor={`size-${line.key}`} error={error('size')}>
-          <Combobox
-            id={`size-${line.key}`}
-            value={line.size}
-            onChange={(value) => onChange(line.key, { size: value })}
-            options={ROUND_SIZE_OPTIONS}
-            placeholder="Select or type a size"
-            invalid={Boolean(error('size'))}
-          />
-        </Field>
-      )}
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+      <Field label="Pipe Type" htmlFor={`pipeType-${line.key}`}>
+        <Select
+          id={`pipeType-${line.key}`}
+          value={line.pipeType}
+          onChange={(value) => onChange(line.key, { pipeType: value, size: '' })}
+          options={PIPE_TYPE_OPTIONS}
+        />
+      </Field>
+
+      <Field
+        label={line.pipeType === 'round' ? 'Pipe Size' : 'Box Pipe Size'}
+        htmlFor={`size-${line.key}`}
+        error={error('size')}
+      >
+        <Combobox
+          id={`size-${line.key}`}
+          value={line.size}
+          onChange={(value) => onChange(line.key, { size: value })}
+          options={ROUND_SIZE_OPTIONS}
+          placeholder="Select or type a size"
+          invalid={Boolean(error('size'))}
+        />
+      </Field>
 
       <Field
         label="Weight per Pipe (Kg)"
@@ -582,6 +722,9 @@ function PipesFields({
           invalid={Boolean(error('ratePerKg'))}
         />
       </Field>
+
+      <ComputedField label="Total Weight (Kg)" value={formatNumber(weight)} />
+      <ComputedField label="Amount" value={formatMoney(amount)} />
     </div>
   )
 }
@@ -590,13 +733,17 @@ function SheetsFields({
   line,
   onChange,
   error,
+  weight,
+  amount,
 }: {
   line: SheetLineState
   onChange: (key: number, patch: LinePatch) => void
   error: (field: string) => string | undefined
+  weight: number
+  amount: number
 }) {
   return (
-    <div className="mt-3 grid gap-3 sm:grid-cols-4">
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
       <Field label="Length (ft)" htmlFor={`length-${line.key}`} error={error('lengthFt')}>
         <Select
           id={`length-${line.key}`}
@@ -644,6 +791,9 @@ function SheetsFields({
           invalid={Boolean(error('ratePerKg'))}
         />
       </Field>
+
+      <ComputedField label="Total Weight (Kg)" value={formatNumber(weight)} />
+      <ComputedField label="Amount" value={formatMoney(amount)} />
     </div>
   )
 }
@@ -652,35 +802,98 @@ function HardwareFields({
   line,
   onChange,
   error,
+  amount,
 }: {
   line: HardwareLineState
   onChange: (key: number, patch: LinePatch) => void
   error: (field: string) => string | undefined
+  amount: number
 }) {
   return (
-    <div className="mt-3 grid gap-3 sm:grid-cols-4">
-      <Field label="Number of Pieces" htmlFor={`pieces-${line.key}`} error={error('pieces')}>
-        <NumberInput
-          id={`pieces-${line.key}`}
-          value={line.pieces}
-          onChange={(value) => onChange(line.key, { pieces: value })}
-          placeholder="0"
-          step={1}
-          invalid={Boolean(error('pieces'))}
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+      <Field label="Hardware Type" htmlFor={`hardwareType-${line.key}`}>
+        <Select
+          id={`hardwareType-${line.key}`}
+          value={line.hardwareType}
+          onChange={(value) => onChange(line.key, { hardwareType: value })}
+          options={HARDWARE_TYPE_OPTIONS}
         />
       </Field>
 
-      <Field label="Rate per Piece" htmlFor={`ratePerPiece-${line.key}`} error={error('ratePerPiece')}>
-        <NumberInput
-          id={`ratePerPiece-${line.key}`}
-          value={line.ratePerPiece}
-          onChange={(value) => onChange(line.key, { ratePerPiece: value })}
-          placeholder="0.00"
-          step={0.01}
-          suffix="₹"
-          invalid={Boolean(error('ratePerPiece'))}
-        />
-      </Field>
+      <div className="sm:col-span-1 md:col-span-2">
+        <Field
+          label="Description"
+          htmlFor={`description-${line.key}`}
+          error={error('description')}
+        >
+          <TextInput
+            id={`description-${line.key}`}
+            value={line.description}
+            onChange={(value) => onChange(line.key, { description: value })}
+            placeholder="e.g. Nails"
+            invalid={Boolean(error('description'))}
+          />
+        </Field>
+      </div>
+
+      {line.hardwareType === 'plate' ? (
+        <>
+          <Field label="Weight (Kg)" htmlFor={`weight-${line.key}`} error={error('weightKg')}>
+            <NumberInput
+              id={`weight-${line.key}`}
+              value={line.weight}
+              onChange={(value) => onChange(line.key, { weight: value })}
+              placeholder="0.00"
+              step={0.01}
+              suffix="kg"
+              invalid={Boolean(error('weightKg'))}
+            />
+          </Field>
+
+          <Field label="Rate per Kg" htmlFor={`hwRate-${line.key}`} error={error('ratePerKg')}>
+            <NumberInput
+              id={`hwRate-${line.key}`}
+              value={line.ratePerKg}
+              onChange={(value) => onChange(line.key, { ratePerKg: value })}
+              placeholder="0.00"
+              step={0.01}
+              suffix="₹"
+              invalid={Boolean(error('ratePerKg'))}
+            />
+          </Field>
+        </>
+      ) : (
+        <>
+          <Field label="Number of Pieces" htmlFor={`pieces-${line.key}`} error={error('pieces')}>
+            <NumberInput
+              id={`pieces-${line.key}`}
+              value={line.pieces}
+              onChange={(value) => onChange(line.key, { pieces: value })}
+              placeholder="0"
+              step={1}
+              invalid={Boolean(error('pieces'))}
+            />
+          </Field>
+
+          <Field
+            label="Rate per Piece"
+            htmlFor={`ratePerPiece-${line.key}`}
+            error={error('ratePerPiece')}
+          >
+            <NumberInput
+              id={`ratePerPiece-${line.key}`}
+              value={line.ratePerPiece}
+              onChange={(value) => onChange(line.key, { ratePerPiece: value })}
+              placeholder="0.00"
+              step={0.01}
+              suffix="₹"
+              invalid={Boolean(error('ratePerPiece'))}
+            />
+          </Field>
+        </>
+      )}
+
+      <ComputedField label="Amount" value={formatMoney(amount)} />
     </div>
   )
 }

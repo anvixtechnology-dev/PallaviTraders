@@ -2,16 +2,19 @@
  * Quotation rules, constants and calculations.
  *
  * A quotation is a commercial offer: pipes and sheets are priced by weight
- * (kg) and hardware by the piece. Nothing here touches stock. Everything is a
- * pure function, so the totals and validation can be unit tested without React
- * or Firestore.
+ * (kg), hardware either by the piece or (for plates) by weight. Nothing here
+ * touches stock. Everything is a pure function, so the totals and validation
+ * can be unit tested without React or Firestore.
  */
 
 import type {
-  HardwareItem,
   HardwareItemInput,
+  PieceHardwareItem,
+  PieceHardwareItemInput,
   PipeItem,
   PipeItemInput,
+  PlateHardwareItem,
+  PlateHardwareItemInput,
   Quotation,
   QuotationInput,
   QuotationItem,
@@ -145,14 +148,28 @@ export function sheetAmount(item: SheetItemInput): number {
   return roundMoney(sheetTotalWeight(item) * rate)
 }
 
-/** Hardware line amount: pieces x rate per piece. */
-export function hardwareAmount(item: HardwareItemInput): number {
+/** Piece-based hardware line amount: pieces x rate per piece. */
+export function pieceHardwareAmount(item: PieceHardwareItemInput): number {
   const pieces = Number.isFinite(item.pieces) ? item.pieces : 0
   const rate = Number.isFinite(item.ratePerPiece) ? item.ratePerPiece : 0
   return roundMoney(pieces * rate)
 }
 
-/** Total weight in kg for any line (hardware has none). */
+/** Plate-based hardware line amount: weight (kg) x rate per kg. */
+export function plateHardwareAmount(item: PlateHardwareItemInput): number {
+  const weight = Number.isFinite(item.weightKg) ? item.weightKg : 0
+  const rate = Number.isFinite(item.ratePerKg) ? item.ratePerKg : 0
+  return roundMoney(weight * rate)
+}
+
+/** Hardware line amount, priced per piece or per kg depending on the type. */
+export function hardwareAmount(item: HardwareItemInput): number {
+  return item.hardwareType === 'plate'
+    ? plateHardwareAmount(item)
+    : pieceHardwareAmount(item)
+}
+
+/** Total weight in kg for any line (plate hardware weighs; piece hardware has none). */
 export function quotationItemWeight(item: QuotationItemInput): number {
   switch (item.category) {
     case 'pipes':
@@ -160,7 +177,9 @@ export function quotationItemWeight(item: QuotationItemInput): number {
     case 'sheets':
       return sheetTotalWeight(item)
     case 'hardware':
-      return 0
+      return item.hardwareType === 'plate' && Number.isFinite(item.weightKg)
+        ? round(item.weightKg)
+        : 0
   }
 }
 
@@ -224,11 +243,12 @@ function toStoredItem(item: QuotationItemInput): QuotationItem {
       return stored
     }
     case 'hardware': {
-      const stored: HardwareItem = {
-        ...item,
-        description: item.description.trim(),
-        amount: hardwareAmount(item),
+      const description = item.description.trim()
+      if (item.hardwareType === 'plate') {
+        const stored: PlateHardwareItem = { ...item, description, amount: plateHardwareAmount(item) }
+        return stored
       }
+      const stored: PieceHardwareItem = { ...item, description, amount: pieceHardwareAmount(item) }
       return stored
     }
   }
@@ -304,8 +324,13 @@ export function quotationTableRows(quotation: Quotation): string[][] {
         break
       case 'hardware':
         row[2] = item.description || EMPTY_CELL
-        row[6] = formatNumber(item.pieces, 0)
-        row[7] = formatNumber(item.ratePerPiece)
+        if (item.hardwareType === 'plate') {
+          row[5] = formatNumber(item.weightKg)
+          row[7] = formatNumber(item.ratePerKg)
+        } else {
+          row[6] = formatNumber(item.pieces, 0)
+          row[7] = formatNumber(item.ratePerPiece)
+        }
         break
     }
 
@@ -384,11 +409,19 @@ export function validateQuotation(input: QuotationInput): QuotationValidationRes
     if (item.category === 'hardware') {
       if (!item.description.trim()) fieldErrors[key('description')] = 'Description is required'
 
-      const piecesError = numberFieldError(item.pieces)
-      if (piecesError) fieldErrors[key('pieces')] = piecesError
+      if (item.hardwareType === 'plate') {
+        const weightError = numberFieldError(item.weightKg)
+        if (weightError) fieldErrors[key('weightKg')] = weightError
 
-      const rateError = numberFieldError(item.ratePerPiece, { required: false })
-      if (rateError) fieldErrors[key('ratePerPiece')] = rateError
+        const rateError = numberFieldError(item.ratePerKg, { required: false })
+        if (rateError) fieldErrors[key('ratePerKg')] = rateError
+      } else {
+        const piecesError = numberFieldError(item.pieces)
+        if (piecesError) fieldErrors[key('pieces')] = piecesError
+
+        const rateError = numberFieldError(item.ratePerPiece, { required: false })
+        if (rateError) fieldErrors[key('ratePerPiece')] = rateError
+      }
     }
   })
 

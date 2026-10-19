@@ -19,7 +19,7 @@ export function Layout() {
   return (
     <div className="min-h-dvh">
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4">
           <h1 className="text-lg font-bold tracking-wide text-slate-900">PALLAVI IRON TRADERS</h1>
           <div className="flex items-center gap-3">
             <span className="hidden text-xs text-slate-500 sm:inline">{user?.email}</span>
@@ -33,7 +33,7 @@ export function Layout() {
           </div>
         </div>
 
-        <nav className="mx-auto max-w-3xl px-4">
+        <nav className="mx-auto max-w-4xl px-4">
           <ul className="-mb-px flex gap-1">
             {NAV_LINKS.map((link) => (
               <li key={link.to}>
@@ -55,7 +55,7 @@ export function Layout() {
         </nav>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-6">
+      <main className="mx-auto max-w-4xl px-4 py-6">
         <Outlet />
       </main>
     </div>

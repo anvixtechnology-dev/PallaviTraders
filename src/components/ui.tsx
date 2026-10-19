@@ -23,12 +23,14 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   )
 }
 
-export function CardTitle({ children }: { children: ReactNode }) {
-  return <h2 className="mb-4 text-base font-semibold text-slate-900">{children}</h2>
+export function CardTitle({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return (
+    <h2 className={`text-base font-semibold text-slate-900 ${className || 'mb-4'}`}>{children}</h2>
+  )
 }
 
 const controlClass =
-  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400'
+  'w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-brand-600 focus:ring-2 focus:ring-brand-100 focus:outline-none disabled:bg-slate-50 disabled:text-slate-400'
 
 export function TextInput({
   id,
@@ -206,19 +208,35 @@ export function Select<T extends string>({
   disabled?: boolean
 }) {
   return (
-    <select
-      id={id}
-      value={value}
-      disabled={disabled}
-      onChange={(event) => onChange(event.target.value as T)}
-      className={`${controlClass} ${invalid ? 'border-red-400' : ''}`}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        id={id}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value as T)}
+        className={`${controlClass} appearance-none pr-9 ${invalid ? 'border-red-400' : ''}`}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 20 20"
+        fill="none"
+        className="pointer-events-none absolute inset-y-0 right-3 my-auto h-4 w-4 text-slate-400"
+      >
+        <path
+          d="M5 7.5 10 12.5 15 7.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    </div>
   )
 }
 
@@ -255,23 +273,26 @@ export function Button({
   onClick,
   type = 'button',
   variant = 'primary',
+  size = 'md',
   disabled = false,
 }: {
   children: ReactNode
   onClick?: () => void
   type?: 'button' | 'submit'
   variant?: 'primary' | 'secondary' | 'danger' | 'success'
+  size?: 'sm' | 'md'
   disabled?: boolean
 }) {
-  const base =
-    'rounded-md px-4 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60'
+  const base = `inline-flex items-center justify-center rounded-md font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
+    size === 'sm' ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm'
+  }`
   const styles =
     variant === 'primary'
       ? 'bg-brand-600 text-white hover:bg-brand-700'
       : variant === 'success'
         ? 'bg-green-600 text-white hover:bg-green-700'
         : variant === 'danger'
-          ? 'border border-red-200 bg-white text-red-600 hover:bg-red-50'
+          ? 'bg-red-600 text-white hover:bg-red-700'
           : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
 
   return (
