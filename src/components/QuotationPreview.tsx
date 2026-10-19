@@ -98,6 +98,14 @@ export function QuotationPreview({
         >
           {closeLabel}
         </button>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close preview"
+          className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-300 bg-white text-lg leading-none text-stone-600 hover:bg-stone-50"
+        >
+          ×
+        </button>
       </div>
 
       <div className="print-sheet mx-auto w-[210mm] max-w-full bg-white p-[12mm] text-slate-900 shadow-lg">
