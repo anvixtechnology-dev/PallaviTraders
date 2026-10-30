@@ -38,6 +38,8 @@ export const BUSINESS = {
   materials:
     'G.I., M.S. Pipes • Roofing Sheets • Tata Reveting Sheets • Iron Scrap • All Types of Iron Materials',
   mobile: '99635 22888 / 9705012208',
+  /** Shown in the top-right corner of the quotation letterhead. */
+  phone: '9888933567',
   proprietors: 'Merugu Srinivas / Vaida Satish',
   address:
     'D.No. 4-2-9A, Bypass Road, Near B.V. Raju Statue, BHIMAVARAM - 534 202, W.G. Dist., (A.P.)',

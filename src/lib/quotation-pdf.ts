@@ -7,8 +7,8 @@ import { BUSINESS, quotationPdfFileName, GST_NOTE, quotationTableRows } from './
 import { formatDate } from './dates'
 import { formatNumber } from './money'
 
-const MARGIN = 12
-const PAGE_WIDTH = 210
+const MARGIN = 8
+const PAGE_WIDTH = 148
 const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2
 
 const BLUE: [number, number, number] = [30, 64, 175]
@@ -26,41 +26,41 @@ function lastY(doc: jsPDF, fallback: number): number {
   return table?.finalY ?? fallback
 }
 
-function drawHeader(doc: jsPDF, quotation: Quotation): number {
+function drawHeader(doc: jsPDF): number {
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(20)
+  doc.setFontSize(16)
   doc.setTextColor(...BLUE)
-  doc.text(BUSINESS.name, PAGE_WIDTH / 2, 18, { align: 'center' })
+  doc.text(BUSINESS.name, PAGE_WIDTH / 2, 12, { align: 'center' })
 
-  doc.setFontSize(10)
-  doc.text(BUSINESS.businessType, PAGE_WIDTH / 2, 24, { align: 'center' })
+  doc.setFontSize(8.5)
+  doc.text(BUSINESS.businessType, PAGE_WIDTH / 2, 17, { align: 'center' })
 
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
+  doc.setFontSize(6.5)
   doc.setTextColor(...MUTED)
-  doc.text(BUSINESS.materials, PAGE_WIDTH / 2, 29, { align: 'center', maxWidth: CONTENT_WIDTH })
-  doc.text(BUSINESS.address, PAGE_WIDTH / 2, 33, { align: 'center', maxWidth: CONTENT_WIDTH })
+  doc.text(BUSINESS.materials, PAGE_WIDTH / 2, 21, { align: 'center', maxWidth: CONTENT_WIDTH })
+  doc.text(BUSINESS.address, PAGE_WIDTH / 2, 24.5, { align: 'center', maxWidth: CONTENT_WIDTH })
   doc.text(
     `Mobile: ${BUSINESS.mobile}   ·   Proprietor: ${BUSINESS.proprietors}   ·   GSTIN: ${BUSINESS.gstin}`,
     PAGE_WIDTH / 2,
-    37,
+    28,
     { align: 'center' },
   )
 
-  doc.setFontSize(9)
+  doc.setFontSize(7)
   doc.setTextColor(...SLATE)
-  doc.text(`Date: ${formatDate(quotation.date)}`, PAGE_WIDTH - MARGIN, 18, { align: 'right' })
+  doc.text(`Ph No: ${BUSINESS.phone}`, PAGE_WIDTH - MARGIN, 7, { align: 'right' })
 
   doc.setDrawColor(...GOLD)
-  doc.setLineWidth(0.8)
-  doc.line(MARGIN, 41, PAGE_WIDTH - MARGIN, 41)
+  doc.setLineWidth(0.6)
+  doc.line(MARGIN, 31, PAGE_WIDTH - MARGIN, 31)
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(14)
+  doc.setFontSize(11)
   doc.setTextColor(...GOLD)
-  doc.text('QUOTATION', PAGE_WIDTH / 2, 49, { align: 'center' })
+  doc.text('QUOTATION', PAGE_WIDTH / 2, 37.5, { align: 'center' })
 
-  return 54
+  return 41
 }
 
 function drawInfoTable(doc: jsPDF, quotation: Quotation, startY: number): number {
@@ -93,29 +93,29 @@ function drawInfoTable(doc: jsPDF, quotation: Quotation, startY: number): number
     theme: 'grid',
     margin: { left: MARGIN, right: MARGIN },
     styles: {
-      fontSize: 8.5,
-      cellPadding: 1.8,
+      fontSize: 7,
+      cellPadding: 1.3,
       lineColor: BORDER,
       lineWidth: 0.1,
       textColor: SLATE,
       valign: 'middle',
     },
     columnStyles: {
-      0: { cellWidth: 28, fontStyle: 'bold', textColor: MUTED, fillColor: LIGHT_ROW },
-      1: { cellWidth: CONTENT_WIDTH / 2 - 28 },
-      2: { cellWidth: 28, fontStyle: 'bold', textColor: MUTED, fillColor: LIGHT_ROW },
-      3: { cellWidth: CONTENT_WIDTH / 2 - 28 },
+      0: { cellWidth: 22, fontStyle: 'bold', textColor: MUTED, fillColor: LIGHT_ROW },
+      1: { cellWidth: CONTENT_WIDTH / 2 - 22 },
+      2: { cellWidth: 22, fontStyle: 'bold', textColor: MUTED, fillColor: LIGHT_ROW },
+      3: { cellWidth: CONTENT_WIDTH / 2 - 22 },
     },
   })
 
-  return lastY(doc, startY) + 4
+  return lastY(doc, startY) + 3
 }
 
 function tableStyles() {
   return {
     theme: 'grid' as const,
     margin: { left: MARGIN, right: MARGIN },
-    styles: { fontSize: 8, cellPadding: 1.6, lineColor: BORDER, lineWidth: 0.1, textColor: SLATE },
+    styles: { fontSize: 6, cellPadding: 1, lineColor: BORDER, lineWidth: 0.1, textColor: SLATE },
     headStyles: { fillColor: BLUE, textColor: [255, 255, 255] as [number, number, number], fontStyle: 'bold' as const },
     alternateRowStyles: { fillColor: LIGHT_ROW },
   }
@@ -123,10 +123,10 @@ function tableStyles() {
 
 function drawCategoryHeading(doc: jsPDF, title: string, startY: number): number {
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9.5)
+  doc.setFontSize(8)
   doc.setTextColor(...BLUE)
-  doc.text(title, MARGIN, startY)
-  return startY + 2
+  doc.text(title, MARGIN, startY + 1)
+  return startY + 2.5
 }
 
 function drawItemsTable(doc: jsPDF, quotation: Quotation, startY: number): number {
@@ -152,59 +152,51 @@ function drawItemsTable(doc: jsPDF, quotation: Quotation, startY: number): numbe
       ],
     ],
     body: rows,
+    foot: [
+      [
+        { content: 'GRAND TOTAL', colSpan: 8, styles: { halign: 'right', fillColor: BLUE, textColor: [255, 255, 255] as [number, number, number] } },
+        { content: formatNumber(quotation.grandTotal), styles: { halign: 'right', fillColor: CREAM, textColor: CREAM_TEXT } },
+      ],
+    ],
+    showFoot: 'lastPage',
+    footStyles: { fontSize: 7, fontStyle: 'bold' },
     styles: { ...tableStyles().styles, overflow: 'linebreak' as const },
     columnStyles: {
       0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 18 },
-      2: { cellWidth: 38 },
-      3: { cellWidth: 30 },
-      4: { cellWidth: 15, halign: 'right' },
-      5: { cellWidth: 19, halign: 'right' },
-      6: { cellWidth: 15, halign: 'right' },
-      7: { cellWidth: 19, halign: 'right' },
+      1: { cellWidth: 13 },
+      2: { cellWidth: 18 },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 11, halign: 'right' },
+      5: { cellWidth: 15, halign: 'right' },
+      6: { cellWidth: 11, halign: 'right' },
+      7: { cellWidth: 14, halign: 'right' },
       8: { halign: 'right' },
     },
   })
 
-  return lastY(doc, startY) + 4
+  return lastY(doc, startY) + 3
 }
 
-function drawGrandTotal(doc: jsPDF, quotation: Quotation, startY: number): number {
+function drawAmountInWords(doc: jsPDF, quotation: Quotation, startY: number): number {
   const pageHeight = doc.internal.pageSize.getHeight()
-  let y = startY
-  if (y > pageHeight - 60) {
+  let y = startY + 2
+  if (y > pageHeight - 20) {
     doc.addPage()
     y = MARGIN + 4
   }
 
-  const width = 95
-  autoTable(doc, {
-    startY: y,
-    body: [['Grand Total', `Rs. ${formatNumber(quotation.grandTotal)}`]],
-    theme: 'grid',
-    tableWidth: width,
-    margin: { left: PAGE_WIDTH - MARGIN - width, right: MARGIN },
-    styles: { fontSize: 11, fontStyle: 'bold', cellPadding: 2.6, lineColor: BORDER, lineWidth: 0.1 },
-    columnStyles: {
-      0: { cellWidth: 55, fillColor: BLUE, textColor: [255, 255, 255] as [number, number, number] },
-      1: { halign: 'right', fillColor: CREAM, textColor: CREAM_TEXT },
-    },
-  })
-
-  y = lastY(doc, y) + 6
-
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(8.5)
+  doc.setFontSize(6.5)
   doc.setTextColor(...SLATE)
   doc.text('Amount in Words:', MARGIN, y)
   doc.setFont('helvetica', 'normal')
-  doc.text(quotation.amountInWords, MARGIN + 28, y, { maxWidth: CONTENT_WIDTH - 28 })
+  doc.text(quotation.amountInWords, MARGIN + 21, y, { maxWidth: CONTENT_WIDTH - 21 })
 
-  y += 8
-  doc.setFontSize(7.5)
+  y += 6
+  doc.setFontSize(6)
   doc.setTextColor(...MUTED)
   doc.text(GST_NOTE, MARGIN, y, { maxWidth: CONTENT_WIDTH })
-  y += 10
+  y += 7
 
   return y
 }
@@ -212,7 +204,7 @@ function drawGrandTotal(doc: jsPDF, quotation: Quotation, startY: number): numbe
 function drawSignature(doc: jsPDF, startY: number): number {
   const pageHeight = doc.internal.pageSize.getHeight()
   let y = startY
-  if (y > pageHeight - 45) {
+  if (y > pageHeight - 32) {
     doc.addPage()
     y = MARGIN + 10
   }
@@ -220,41 +212,41 @@ function drawSignature(doc: jsPDF, startY: number): number {
   const rightX = PAGE_WIDTH - MARGIN
 
   doc.setFont('helvetica', 'bold')
-  doc.setFontSize(9)
+  doc.setFontSize(7)
   doc.setTextColor(...SLATE)
   doc.text(`For ${BUSINESS.name}`, rightX, y, { align: 'right' })
 
-  y += 18
+  y += 12
   doc.setDrawColor(...BORDER)
   doc.setLineWidth(0.2)
-  doc.line(rightX - 45, y, rightX, y)
+  doc.line(rightX - 38, y, rightX, y)
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
+  doc.setFontSize(6)
   doc.setTextColor(...MUTED)
-  doc.text('Authorized Signature', rightX, y + 4, { align: 'right' })
+  doc.text('Authorized Signature', rightX, y + 3.5, { align: 'right' })
 
-  y += 14
-  doc.setFontSize(7.5)
+  y += 9
+  doc.setFontSize(5.5)
   doc.setTextColor(...BLUE)
   doc.text(BUSINESS.address, PAGE_WIDTH / 2, y, { align: 'center', maxWidth: CONTENT_WIDTH })
   doc.text(
     `${BUSINESS.name}   ·   Mobile: ${BUSINESS.mobile}   ·   GSTIN: ${BUSINESS.gstin}`,
     PAGE_WIDTH / 2,
-    y + 4,
+    y + 3.5,
     { align: 'center' },
   )
 
   return y + 8
 }
 
-/** Build the quotation as an A4 PDF document. */
+/** Build the quotation as an A5 PDF document. */
 export function buildQuotationPdf(quotation: Quotation): jsPDF {
-  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' })
+  const doc = new jsPDF({ unit: 'mm', format: 'a5', orientation: 'portrait' })
 
-  let y = drawHeader(doc, quotation)
+  let y = drawHeader(doc)
   y = drawInfoTable(doc, quotation, y)
   y = drawItemsTable(doc, quotation, y)
-  y = drawGrandTotal(doc, quotation, y)
+  y = drawAmountInWords(doc, quotation, y)
   drawSignature(doc, y)
 
   return doc
@@ -265,7 +257,7 @@ export function quotationPdfBlob(quotation: Quotation): Blob {
   return buildQuotationPdf(quotation).output('blob')
 }
 
-/** Build and download the quotation as an A4 PDF. */
+/** Build and download the quotation as an A5 PDF. */
 export function downloadQuotationPdf(quotation: Quotation): void {
   buildQuotationPdf(quotation).save(quotationPdfFileName(quotation))
 }

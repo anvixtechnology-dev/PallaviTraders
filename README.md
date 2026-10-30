@@ -7,7 +7,7 @@ Two pages, nothing else:
 
 | Page          | What it does                                                                                                       |
 | ------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Form**      | Two tabs. **Sale** records a sale and reduces stock atomically. **Quotation** builds a printable A4 quotation.     |
+| **Form**      | Two tabs. **Sale** records a sale and reduces stock atomically. **Quotation** builds a printable A5 quotation.     |
 | **Customers** | The sales ledger (newest first), searchable by customer name, DS number or item. Click a row for the full details. |
 
 There is deliberately **no stock-editing screen**: stock items are maintained
@@ -125,7 +125,7 @@ Saving a sale runs inside a Firestore transaction:
 
 ## Quotation PDF
 
-The quotation is a real A4 sheet rendered in the browser. There is **no PDF
+The quotation is a real A5 sheet rendered in the browser. There is **no PDF
 library** — use the browser's **Print → Save as PDF** (the *Print / Save as PDF*
 button does this). The letterhead, GSTIN and styling are fixed:
 

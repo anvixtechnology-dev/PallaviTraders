@@ -3,7 +3,7 @@
  *
  * Rendered through a portal into a `.print-root` element directly under
  * `<body>`, so the print stylesheet can hide the rest of the app and print just
- * this sheet on A4. The same data is used to build a real PDF via jsPDF.
+ * this sheet on A5. The same data is used to build a real PDF via jsPDF.
  */
 
 import { useState } from 'react'
@@ -13,7 +13,7 @@ import type { Quotation } from '@/types'
 import { BUSINESS, GST_NOTE, quotationTableRows } from '@/lib/quotations'
 import { downloadQuotationPdf } from '@/lib/quotation-pdf'
 import { formatDate } from '@/lib/dates'
-import { formatMoney } from '@/lib/money'
+import { formatNumber } from '@/lib/money'
 import { WhatsAppDialog } from '@/components/WhatsAppDialog'
 
 function getPrintRoot(): HTMLElement {
@@ -111,7 +111,7 @@ export function QuotationPreview({
       <div className="print-sheet mx-auto w-[210mm] max-w-full bg-white p-[12mm] text-slate-900 shadow-lg">
         <header className="relative text-center">
           <div className="absolute right-0 top-0 text-xs font-medium text-slate-700">
-            Date: {formatDate(quotation.date)}
+            Ph No: {BUSINESS.phone}
           </div>
           <h1 className="text-2xl font-bold tracking-wide text-blue-800">{BUSINESS.name}</h1>
           <p className="text-sm font-semibold text-blue-700">{BUSINESS.businessType}</p>
@@ -127,7 +127,7 @@ export function QuotationPreview({
 
         <h2 className="text-center text-xl font-bold tracking-[0.3em] text-amber-600">QUOTATION</h2>
 
-        <table className="mt-4 w-full border-collapse text-xs">
+        <table className="quote-info mt-4 w-full border-collapse text-xs">
           <tbody>
             {infoPairs.map((pair, rowIndex) => (
               <tr key={rowIndex}>
@@ -145,7 +145,7 @@ export function QuotationPreview({
 
         {tableRows.length > 0 ? (
           <Section title="Items">
-            <table className="w-full table-fixed border-collapse text-[11px]">
+            <table className="quote-items w-full table-fixed border-collapse text-[11px]">
               <colgroup>
                 <col className="w-[5%]" />
                 <col className="w-[11%]" />
@@ -183,36 +183,36 @@ export function QuotationPreview({
                     ))}
                   </tr>
                 ))}
+                <tr className="print-exact">
+                  <td
+                    colSpan={8}
+                    className="border border-blue-900 bg-blue-800 px-2 py-1.5 text-right font-bold tracking-wide text-white"
+                  >
+                    GRAND TOTAL
+                  </td>
+                  <td className="border border-blue-900 bg-amber-50 px-2 py-1.5 text-right font-bold text-slate-900">
+                    {formatNumber(quotation.grandTotal)}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </Section>
         ) : null}
 
-        <div className="mt-4 flex justify-end">
-          <div className="flex items-stretch overflow-hidden rounded-md border border-blue-900 text-sm print-exact">
-            <span className="bg-blue-800 px-4 py-2 font-bold tracking-wide text-white">
-              GRAND TOTAL
-            </span>
-            <span className="min-w-[8rem] bg-amber-50 px-4 py-2 text-right text-base font-bold text-slate-900">
-              {formatMoney(quotation.grandTotal)}
-            </span>
-          </div>
-        </div>
-
-        <p className="mt-3 text-xs">
+        <p className="quote-words mt-3 text-xs">
           <span className="font-semibold">Amount in Words: </span>
           {quotation.amountInWords}
         </p>
-        <p className="mt-1 text-xs text-slate-600">{GST_NOTE}</p>
+        <p className="quote-words mt-1 text-xs text-slate-600">{GST_NOTE}</p>
 
-        <div className="mt-12 flex justify-end">
+        <div className="quote-signature mt-12 flex justify-end">
           <div className="text-center text-xs">
-            <div className="mb-12 font-semibold">For {BUSINESS.name}</div>
+            <div className="quote-signature-space mb-12 font-semibold">For {BUSINESS.name}</div>
             <div className="border-t border-slate-400 pt-1">Authorized Signature</div>
           </div>
         </div>
 
-        <div className="mt-8 border-t border-slate-200 pt-2 text-center text-[10px] text-blue-700">
+        <div className="quote-footer mt-8 border-t border-slate-200 pt-2 text-center text-[10px] text-blue-700">
           {BUSINESS.name} · {BUSINESS.address} · Mobile: {BUSINESS.mobile} · GSTIN: {BUSINESS.gstin}
         </div>
       </div>
