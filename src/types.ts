@@ -136,14 +136,19 @@ export interface StockShortfall {
  * Quotations                                                        *
  * ------------------------------------------------------------------ */
 
-/** The three item categories a quotation line can belong to. */
-export const ITEM_CATEGORIES = ['pipes', 'sheets', 'hardware'] as const
+/**
+ * The item categories a quotation line can belong to. `none` covers materials
+ * outside the other three; it is labelled in the form's dropdown but its
+ * Category cell in the quotation table is always blank.
+ */
+export const ITEM_CATEGORIES = ['pipes', 'sheets', 'hardware', 'none'] as const
 export type ItemCategory = (typeof ITEM_CATEGORIES)[number]
 
 export const ITEM_CATEGORY_LABELS: Record<ItemCategory, string> = {
   pipes: 'Pipes',
   sheets: 'Sheets',
   hardware: 'Hardware',
+  none: 'None',
 }
 
 export const PIPE_TYPES = ['round', 'box'] as const
@@ -207,8 +212,26 @@ export interface PlateHardwareItemInput {
 /** A hardware line, priced per piece or per kg depending on its type. */
 export type HardwareItemInput = PieceHardwareItemInput | PlateHardwareItemInput
 
+/** A line for any other material, priced by weight. */
+export interface NoneItemInput {
+  category: 'none'
+  itemType: string
+  /** Optional, for display only; blank when not entered. */
+  size: string
+  /** Optional, for display only; 0 when not entered. Not used in the weight. */
+  lengthFt: number
+  quantity: number
+  /** Total weight = quantity x this. */
+  weightPerItemKg: number
+  ratePerKg: number
+}
+
 /** One line of a quotation before it is validated and stored. */
-export type QuotationItemInput = PipeItemInput | SheetItemInput | HardwareItemInput
+export type QuotationItemInput =
+  | PipeItemInput
+  | SheetItemInput
+  | HardwareItemInput
+  | NoneItemInput
 
 /** A pipe line as stored, with its calculated total weight and amount. */
 export interface PipeItem extends PipeItemInput {
@@ -229,13 +252,19 @@ export interface PlateHardwareItem extends PlateHardwareItemInput {
   amount: number
 }
 export type HardwareItem = PieceHardwareItem | PlateHardwareItem
-export type QuotationItem = PipeItem | SheetItem | HardwareItem
+/** A None-category line as stored, with its calculated total weight and amount. */
+export interface NoneItem extends NoneItemInput {
+  totalWeightKg: number
+  amount: number
+}
+export type QuotationItem = PipeItem | SheetItem | HardwareItem | NoneItem
 
 /** Category subtotals plus the grand total. */
 export interface QuotationTotals {
   pipesTotal: number
   sheetsTotal: number
   hardwareTotal: number
+  noneTotal: number
   grandTotal: number
 }
 

@@ -21,6 +21,7 @@ import {
 
 import type {
   ItemCategory,
+  NoneItem,
   PieceHardwareItem,
   PipeItem,
   PlateHardwareItem,
@@ -36,7 +37,7 @@ const quotationsRef = collection(db, 'quotations')
 
 export type QuotationsListener = (quotations: Quotation[], loaded: boolean) => void
 
-const CATEGORIES: readonly ItemCategory[] = ['pipes', 'sheets', 'hardware']
+const CATEGORIES: readonly ItemCategory[] = ['pipes', 'sheets', 'hardware', 'none']
 
 function toNumber(value: unknown): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : 0
@@ -89,6 +90,20 @@ function normaliseStoredItem(raw: unknown): QuotationItem | null {
         amount: toNumber(item.amount),
       }
       return piece
+    }
+    if (category === 'none') {
+      const none: NoneItem = {
+        category: 'none',
+        itemType: toText(item.itemType),
+        size: toText(item.size),
+        lengthFt: toNumber(item.lengthFt),
+        quantity: toNumber(item.quantity),
+        weightPerItemKg: toNumber(item.weightPerItemKg),
+        ratePerKg: toNumber(item.ratePerKg),
+        totalWeightKg: toNumber(item.totalWeightKg),
+        amount: toNumber(item.amount),
+      }
+      return none
     }
     return raw as QuotationItem
   }
@@ -145,6 +160,8 @@ function normaliseQuotation(id: string, raw: unknown): Quotation | null {
     pipesTotal: hasStoredTotals ? storedPipes : totals.pipesTotal,
     sheetsTotal: hasStoredTotals ? storedSheets : totals.sheetsTotal,
     hardwareTotal: hasStoredTotals ? storedHardware : totals.hardwareTotal,
+    // Quotations saved before the None category have no stored `noneTotal`.
+    noneTotal: data.noneTotal !== undefined ? toNumber(data.noneTotal) : totals.noneTotal,
     grandTotal: Number.isFinite(storedGrand) && storedGrand > 0 ? storedGrand : totals.grandTotal,
     amountInWords: toText(data.amountInWords),
     createdAt: toNumber(data.createdAt),

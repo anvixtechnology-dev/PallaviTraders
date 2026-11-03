@@ -1,14 +1,16 @@
 /**
  * Quotation rules, constants and calculations.
  *
- * A quotation is a commercial offer: pipes and sheets are priced by weight
- * (kg), hardware either by the piece or (for plates) by weight. Nothing here
- * touches stock. Everything is a pure function, so the totals and validation
- * can be unit tested without React or Firestore.
+ * A quotation is a commercial offer: pipes, sheets and None-category materials
+ * are priced by weight (kg), hardware either by the piece or (for plates) by
+ * weight. Nothing here touches stock. Everything is a pure function, so the
+ * totals and validation can be unit tested without React or Firestore.
  */
 
 import type {
   HardwareItemInput,
+  NoneItem,
+  NoneItemInput,
   PieceHardwareItem,
   PieceHardwareItemInput,
   PipeItem,
@@ -171,6 +173,19 @@ export function hardwareAmount(item: HardwareItemInput): number {
     : pieceHardwareAmount(item)
 }
 
+/** None-category total weight: quantity x weight per item. */
+export function noneTotalWeight(item: NoneItemInput): number {
+  const perItem = Number.isFinite(item.weightPerItemKg) ? item.weightPerItemKg : 0
+  const quantity = Number.isFinite(item.quantity) ? item.quantity : 0
+  return round(perItem * quantity)
+}
+
+/** None-category line amount: total weight x rate per kg. */
+export function noneAmount(item: NoneItemInput): number {
+  const rate = Number.isFinite(item.ratePerKg) ? item.ratePerKg : 0
+  return roundMoney(noneTotalWeight(item) * rate)
+}
+
 /** Total weight in kg for any line (plate hardware weighs; piece hardware has none). */
 export function quotationItemWeight(item: QuotationItemInput): number {
   switch (item.category) {
@@ -182,6 +197,8 @@ export function quotationItemWeight(item: QuotationItemInput): number {
       return item.hardwareType === 'plate' && Number.isFinite(item.weightKg)
         ? round(item.weightKg)
         : 0
+    case 'none':
+      return noneTotalWeight(item)
   }
 }
 
@@ -194,6 +211,8 @@ export function quotationItemAmount(item: QuotationItemInput): number {
       return sheetAmount(item)
     case 'hardware':
       return hardwareAmount(item)
+    case 'none':
+      return noneAmount(item)
   }
 }
 
@@ -208,11 +227,15 @@ export function computeTotals(items: readonly QuotationItemInput[]): QuotationTo
   const hardwareTotal = sumMoney(
     items.filter((item) => item.category === 'hardware').map((item) => quotationItemAmount(item)),
   )
+  const noneTotal = sumMoney(
+    items.filter((item) => item.category === 'none').map((item) => quotationItemAmount(item)),
+  )
   return {
     pipesTotal,
     sheetsTotal,
     hardwareTotal,
-    grandTotal: sumMoney([pipesTotal, sheetsTotal, hardwareTotal]),
+    noneTotal,
+    grandTotal: sumMoney([pipesTotal, sheetsTotal, hardwareTotal, noneTotal]),
   }
 }
 
@@ -253,6 +276,16 @@ function toStoredItem(item: QuotationItemInput): QuotationItem {
       const stored: PieceHardwareItem = { ...item, description, amount: pieceHardwareAmount(item) }
       return stored
     }
+    case 'none': {
+      const stored: NoneItem = {
+        ...item,
+        itemType: item.itemType.trim(),
+        size: item.size.trim(),
+        totalWeightKg: noneTotalWeight(item),
+        amount: noneAmount(item),
+      }
+      return stored
+    }
   }
 }
 
@@ -281,10 +314,10 @@ export function buildQuotation(
  * ------------------------------------------------------------------ */
 
 /**
- * A long-ish dash shown in table cells that do not apply to an item, e.g. the
- * length of a pipe or the size of a hardware item.
+ * Table cells that do not apply to an item are left blank, e.g. the length of a
+ * pipe or the size of a hardware item.
  */
-export const EMPTY_CELL = '\u2014'
+export const EMPTY_CELL = ''
 
 /**
  * Flatten a quotation's items into a single table, in the order they were
@@ -293,7 +326,8 @@ export const EMPTY_CELL = '\u2014'
  *
  * `S.No | Category | Item / Type | Size | Length (Ft) | Weight (Kg) | Qty / Pieces | Rate | Amount`
  *
- * Cells that do not apply to a category are filled with {@link EMPTY_CELL}.
+ * Cells that do not apply to a category are filled with {@link EMPTY_CELL}. The
+ * Category cell of a None-category item is always blank, never the word "None".
  */
 export function quotationTableRows(quotation: Quotation): string[][] {
   return quotation.items.map((item, index) => {
@@ -333,6 +367,15 @@ export function quotationTableRows(quotation: Quotation): string[][] {
           row[6] = formatNumber(item.pieces, 0)
           row[7] = formatNumber(item.ratePerPiece)
         }
+        break
+      case 'none':
+        row[1] = EMPTY_CELL
+        row[2] = item.itemType
+        row[3] = item.size
+        row[4] = item.lengthFt ? formatNumber(item.lengthFt, 1) : EMPTY_CELL
+        row[5] = formatNumber(item.totalWeightKg)
+        row[6] = formatNumber(item.quantity, 0)
+        row[7] = formatNumber(item.ratePerKg)
         break
     }
 
@@ -425,6 +468,30 @@ export function validateQuotation(input: QuotationInput): QuotationValidationRes
         if (rateError) fieldErrors[key('ratePerPiece')] = rateError
       }
     }
+
+    if (item.category === 'none') {
+      if (!item.itemType.trim()) fieldErrors[key('itemType')] = 'Item type is required'
+
+      // Length is optional, but an entered value still has to be sensible.
+      const lengthError = numberFieldError(item.lengthFt, { required: false })
+      if (lengthError) fieldErrors[key('lengthFt')] = lengthError
+
+      const qtyError = numberFieldError(item.quantity)
+      if (qtyError) {
+        fieldErrors[key('quantity')] = qtyError
+      } else if (!Number.isInteger(item.quantity)) {
+        fieldErrors[key('quantity')] = 'Enter a whole number'
+      }
+
+      const weightError = numberFieldError(item.weightPerItemKg)
+      if (weightError) {
+        fieldErrors[key('weightPerItemKg')] =
+          weightError === 'Required' ? 'Must be greater than zero' : weightError
+      }
+
+      const rateError = numberFieldError(item.ratePerKg, { required: false })
+      if (rateError) fieldErrors[key('ratePerKg')] = rateError
+    }
   })
 
   const firstError = Object.values(fieldErrors)[0]
@@ -447,6 +514,9 @@ export function validateQuotation(input: QuotationInput): QuotationValidationRes
         }
         if (item.category === 'hardware') {
           return { ...item, description: item.description.trim() }
+        }
+        if (item.category === 'none') {
+          return { ...item, itemType: item.itemType.trim(), size: item.size.trim() }
         }
         return item
       }),

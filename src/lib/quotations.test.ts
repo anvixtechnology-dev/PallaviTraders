@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import type {
+  NoneItemInput,
   PieceHardwareItemInput,
   PipeItemInput,
   PlateHardwareItemInput,
@@ -18,6 +19,8 @@ import {
   computeTotals,
   findRoundPipeSize,
   hardwareAmount,
+  noneAmount,
+  noneTotalWeight,
   pipeAmount,
   pipeTotalWeight,
   quotationPdfFileName,
@@ -70,6 +73,19 @@ function plateHardware(overrides: Partial<PlateHardwareItemInput> = {}): PlateHa
     description: 'MS Plate',
     weightKg: 12,
     ratePerKg: 50,
+    ...overrides,
+  }
+}
+
+function other(overrides: Partial<NoneItemInput> = {}): NoneItemInput {
+  return {
+    category: 'none',
+    itemType: 'Iron Material',
+    size: '',
+    lengthFt: 0,
+    quantity: 10,
+    weightPerItemKg: 5,
+    ratePerKg: 60,
     ...overrides,
   }
 }
@@ -153,7 +169,29 @@ describe('hardware calculations', () => {
   })
 })
 
+describe('None-category calculations', () => {
+  it('total weight = quantity x weight per item, amount = weight x rate', () => {
+    expect(noneTotalWeight(other())).toBe(50)
+    expect(noneAmount(other())).toBe(3000)
+  })
+})
+
 describe('computeTotals', () => {
+  it('counts None items once, in their own total and the grand total', () => {
+    const totals = computeTotals([
+      pipe(),
+      sheet(),
+      hardware(),
+      other(),
+      other({ weightPerItemKg: 1 }),
+    ])
+    expect(totals.pipesTotal).toBe(8600)
+    expect(totals.sheetsTotal).toBe(1075)
+    expect(totals.hardwareTotal).toBe(100)
+    expect(totals.noneTotal).toBe(3600)
+    expect(totals.grandTotal).toBe(13375)
+  })
+
   it('sums each category and the grand total', () => {
     const totals = computeTotals([pipe(), sheet(), hardware()])
     expect(totals.pipesTotal).toBe(8600)
@@ -167,6 +205,7 @@ describe('computeTotals', () => {
       pipesTotal: 0,
       sheetsTotal: 0,
       hardwareTotal: 0,
+      noneTotal: 0,
       grandTotal: 0,
     })
   })
@@ -194,6 +233,34 @@ describe('buildQuotation', () => {
     expect(quotation.hardwareTotal).toBe(600)
     expect(quotation.grandTotal).toBe(9200)
     expect(quotation.amountInWords).toBe('Rupees Nine Thousand Two Hundred Only')
+  })
+
+  it('stores a None item with its entered and calculated values', () => {
+    const quotation = buildQuotation(
+      input({
+        items: [
+          other({
+            itemType: '  Scrap  ',
+            size: '  40 mm  ',
+            lengthFt: 12.5,
+            weightPerItemKg: 4,
+          }),
+        ],
+      }),
+    )
+    expect(quotation.items[0]).toEqual({
+      category: 'none',
+      itemType: 'Scrap',
+      size: '40 mm',
+      lengthFt: 12.5,
+      quantity: 10,
+      weightPerItemKg: 4,
+      ratePerKg: 60,
+      totalWeightKg: 40,
+      amount: 2400,
+    })
+    expect(quotation.noneTotal).toBe(2400)
+    expect(quotation.amountInWords).toBe('Rupees Two Thousand Four Hundred Only')
   })
 
   it('keeps the optional customer GST number separate from the shop GSTIN', () => {
@@ -300,6 +367,48 @@ describe('validateQuotation', () => {
     const pipesResult = validateQuotation(input({ items: [pipe(), sheet()] }))
     expect(pipesResult.ok).toBe(true)
   })
+
+  describe('None items', () => {
+    const errorsFor = (item: NoneItemInput) => {
+      const result = validateQuotation(input({ items: [item] }))
+      return result.ok ? {} : result.fieldErrors
+    }
+
+    it('accepts a valid item', () => {
+      expect(errorsFor(other())).toEqual({})
+    })
+
+    it('requires an item type', () => {
+      expect(errorsFor(other({ itemType: '  ' }))['item.0.itemType']).toBeDefined()
+    })
+
+    it('treats size and length as optional, but rejects a negative length', () => {
+      expect(errorsFor(other({ size: '', lengthFt: 0 }))).toEqual({})
+      expect(errorsFor(other({ size: '40 mm', lengthFt: 10 }))).toEqual({})
+      expect(errorsFor(other({ lengthFt: -1 }))['item.0.lengthFt']).toBeDefined()
+    })
+
+    it('does not use length in the weight or amount', () => {
+      expect(noneTotalWeight(other({ lengthFt: 20 }))).toBe(50)
+      expect(noneAmount(other({ lengthFt: 20 }))).toBe(3000)
+    })
+
+    it('requires a positive whole quantity', () => {
+      expect(errorsFor(other({ quantity: 0 }))['item.0.quantity']).toBeDefined()
+      expect(errorsFor(other({ quantity: -1 }))['item.0.quantity']).toBeDefined()
+      expect(errorsFor(other({ quantity: 2.5 }))['item.0.quantity']).toBeDefined()
+    })
+
+    it('requires a weight per item greater than zero', () => {
+      expect(errorsFor(other({ weightPerItemKg: 0 }))['item.0.weightPerItemKg']).toBeDefined()
+      expect(errorsFor(other({ weightPerItemKg: -1 }))['item.0.weightPerItemKg']).toBeDefined()
+    })
+
+    it('rejects a negative rate and allows a zero rate', () => {
+      expect(errorsFor(other({ ratePerKg: -1 }))['item.0.ratePerKg']).toBeDefined()
+      expect(errorsFor(other({ ratePerKg: 0 }))).toEqual({})
+    })
+  })
 })
 
 describe('whatsAppUrl', () => {
@@ -356,6 +465,18 @@ describe('quotationTableRows', () => {
   it('renders plate hardware with weight and rate per kg, leaving pieces blank', () => {
     expect(rowsFor([plateHardware()])).toEqual([
       ['1', 'Hardware', 'MS Plate', EMPTY_CELL, EMPTY_CELL, '12.00', EMPTY_CELL, '50.00', '600.00'],
+    ])
+  })
+
+  it('leaves the Category cell of a None item blank', () => {
+    expect(rowsFor([other()])).toEqual([
+      ['1', '', 'Iron Material', '', '', '50.00', '10', '60.00', '3,000.00'],
+    ])
+  })
+
+  it('shows the optional size and length of a None item when entered', () => {
+    expect(rowsFor([other({ size: '40 mm', lengthFt: 12 })])).toEqual([
+      ['1', '', 'Iron Material', '40 mm', '12.0', '50.00', '10', '60.00', '3,000.00'],
     ])
   })
 

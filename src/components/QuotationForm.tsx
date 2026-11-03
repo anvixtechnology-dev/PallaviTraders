@@ -2,8 +2,8 @@
  * Quotation form (the "Form" page).
  *
  * A quotation is a commercial offer, not a sale, so saving one never touches
- * stock. Each line has a category (Pipes / Sheets / Hardware) that reveals only
- * the fields that category needs; weights and amounts are recalculated live.
+ * stock. Each line has a category (Pipes / Sheets / Hardware / None) that reveals
+ * only the fields that category needs; weights and amounts are recalculated live.
  *
  * With an `editId`, the same form opens a saved quotation, populates every
  * field from Firestore, and saves back over the original document.
@@ -96,11 +96,23 @@ interface HardwareLineState {
   ratePerKg: string
 }
 
-type LineState = PipeLineState | SheetLineState | HardwareLineState
+interface NoneLineState {
+  key: number
+  category: 'none'
+  itemType: string
+  size: string
+  lengthFt: string
+  quantity: string
+  weightPerItem: string
+  ratePerKg: string
+}
+
+type LineState = PipeLineState | SheetLineState | HardwareLineState | NoneLineState
 
 type LinePatch = Partial<Omit<PipeLineState, 'key' | 'category'>> &
   Partial<Omit<SheetLineState, 'key' | 'category'>> &
-  Partial<Omit<HardwareLineState, 'key' | 'category'>>
+  Partial<Omit<HardwareLineState, 'key' | 'category'>> &
+  Partial<Omit<NoneLineState, 'key' | 'category'>>
 
 let lineCounter = 0
 
@@ -123,6 +135,18 @@ function newLine(category: ItemCategory, key = lineCounter++): LineState {
       lengthFt: '10',
       weightPerFoot: '',
       quantity: '1',
+      ratePerKg: '',
+    }
+  }
+  if (category === 'none') {
+    return {
+      key,
+      category: 'none',
+      itemType: '',
+      size: '',
+      lengthFt: '',
+      quantity: '',
+      weightPerItem: '',
       ratePerKg: '',
     }
   }
@@ -155,6 +179,17 @@ function toItemInput(line: LineState): QuotationItemInput {
       lengthFt: parseNumericInput(line.lengthFt),
       weightPerFootKg: parseNumericInput(line.weightPerFoot),
       quantity: parseNumericInput(line.quantity),
+      ratePerKg: parseNumericInput(line.ratePerKg),
+    }
+  }
+  if (line.category === 'none') {
+    return {
+      category: 'none',
+      itemType: line.itemType,
+      size: line.size,
+      lengthFt: parseNumericInput(line.lengthFt),
+      quantity: parseNumericInput(line.quantity),
+      weightPerItemKg: parseNumericInput(line.weightPerItem),
       ratePerKg: parseNumericInput(line.ratePerKg),
     }
   }
@@ -203,6 +238,18 @@ function itemToLine(item: QuotationItem): LineState {
       lengthFt: numberToInput(item.lengthFt) || '10',
       weightPerFoot: numberToInput(item.weightPerFootKg),
       quantity: numberToInput(item.quantity) || '1',
+      ratePerKg: numberToInput(item.ratePerKg),
+    }
+  }
+  if (item.category === 'none') {
+    return {
+      key,
+      category: 'none',
+      itemType: item.itemType,
+      size: item.size,
+      lengthFt: numberToInput(item.lengthFt),
+      quantity: numberToInput(item.quantity),
+      weightPerItem: numberToInput(item.weightPerItemKg),
       ratePerKg: numberToInput(item.ratePerKg),
     }
   }
@@ -518,6 +565,7 @@ export function QuotationForm({
             <SummaryLine label="Pipes Total" value={formatMoney(totals.pipesTotal)} />
             <SummaryLine label="Sheets Total" value={formatMoney(totals.sheetsTotal)} />
             <SummaryLine label="Hardware Total" value={formatMoney(totals.hardwareTotal)} />
+            <SummaryLine label="Other Items Total" value={formatMoney(totals.noneTotal)} />
           </dl>
 
           <div className="mt-3 rounded-md border border-stone-200 bg-stone-50 px-4 py-3">
@@ -641,6 +689,103 @@ function ItemRow({
       {line.category === 'hardware' ? (
         <HardwareFields line={line} onChange={onChange} error={error} amount={amount} />
       ) : null}
+      {line.category === 'none' ? (
+        <NoneFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+      ) : null}
+    </div>
+  )
+}
+
+function NoneFields({
+  line,
+  onChange,
+  error,
+  weight,
+  amount,
+}: {
+  line: NoneLineState
+  onChange: (key: number, patch: LinePatch) => void
+  error: (field: string) => string | undefined
+  weight: number
+  amount: number
+}) {
+  return (
+    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+      <div className="sm:col-span-1 md:col-span-2">
+        <Field label="Item Type" htmlFor={`itemType-${line.key}`} error={error('itemType')}>
+          <TextInput
+            id={`itemType-${line.key}`}
+            value={line.itemType}
+            onChange={(value) => onChange(line.key, { itemType: value })}
+            placeholder="e.g. Iron Material"
+            invalid={Boolean(error('itemType'))}
+          />
+        </Field>
+      </div>
+
+      <Field label="Quantity" htmlFor={`quantity-${line.key}`} error={error('quantity')}>
+        <NumberInput
+          id={`quantity-${line.key}`}
+          value={line.quantity}
+          onChange={(value) => onChange(line.key, { quantity: value })}
+          placeholder="0"
+          step={1}
+          invalid={Boolean(error('quantity'))}
+        />
+      </Field>
+
+      <Field label="Size" htmlFor={`noneSize-${line.key}`}>
+        <TextInput
+          id={`noneSize-${line.key}`}
+          value={line.size}
+          onChange={(value) => onChange(line.key, { size: value })}
+          placeholder="Optional"
+        />
+      </Field>
+
+      <Field label="Length (ft)" htmlFor={`noneLength-${line.key}`} error={error('lengthFt')}>
+        <NumberInput
+          id={`noneLength-${line.key}`}
+          value={line.lengthFt}
+          onChange={(value) => onChange(line.key, { lengthFt: value })}
+          placeholder="Optional"
+          step={0.5}
+          suffix="ft"
+          invalid={Boolean(error('lengthFt'))}
+        />
+      </Field>
+
+      <Field
+        label="Weight per Item (Kg)"
+        htmlFor={`weightPerItem-${line.key}`}
+        error={error('weightPerItemKg')}
+      >
+        <NumberInput
+          id={`weightPerItem-${line.key}`}
+          value={line.weightPerItem}
+          onChange={(value) => onChange(line.key, { weightPerItem: value })}
+          placeholder="0.00"
+          step={0.01}
+          suffix="kg"
+          invalid={Boolean(error('weightPerItemKg'))}
+        />
+      </Field>
+
+      <ComputedField label="Total Weight (Kg)" value={formatNumber(weight)} />
+
+      <Field label="Rate per Kg (₹)" htmlFor={`rate-${line.key}`} error={error('ratePerKg')}>
+        <NumberInput
+          id={`rate-${line.key}`}
+          value={line.ratePerKg}
+          onChange={(value) => onChange(line.key, { ratePerKg: value })}
+          placeholder="0.00"
+          step={0.01}
+          suffix="₹"
+          invalid={Boolean(error('ratePerKg'))}
+        />
+      </Field>
+
+      <ComputedField label="Amount (₹)" value={formatMoney(amount)} />
     </div>
   )
 }
