@@ -386,6 +386,15 @@ export function QuotationForm({
     )
   }
 
+  /** Insert a blank line of the same category directly below the given line. */
+  function addLineAfter(key: number, category: ItemCategory) {
+    setSavedMessage(null)
+    setLines((current) => {
+      const position = current.findIndex((line) => line.key === key)
+      return [...current.slice(0, position + 1), newLine(category), ...current.slice(position + 1)]
+    })
+  }
+
   function removeLine(key: number) {
     setSavedMessage(null)
     setLines((current) => current.filter((line) => line.key !== key))
@@ -549,6 +558,7 @@ export function QuotationForm({
                 canRemove={lines.length > 1}
                 onChange={updateLine}
                 onChangeCategory={changeCategory}
+                onAddAfter={addLineAfter}
                 onRemove={removeLine}
               />
             ))}
@@ -639,6 +649,7 @@ function ItemRow({
   canRemove,
   onChange,
   onChangeCategory,
+  onAddAfter,
   onRemove,
 }: {
   line: LineState
@@ -648,6 +659,7 @@ function ItemRow({
   canRemove: boolean
   onChange: (key: number, patch: LinePatch) => void
   onChangeCategory: (key: number, category: ItemCategory) => void
+  onAddAfter: (key: number, category: ItemCategory) => void
   onRemove: (key: number) => void
 }) {
   const error = (field: string) => errors[`item.${index}.${field}`]
@@ -692,6 +704,12 @@ function ItemRow({
       {line.category === 'none' ? (
         <NoneFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
       ) : null}
+
+      <div className="mt-4 flex justify-end">
+        <Button variant="secondary" onClick={() => onAddAfter(line.key, line.category)}>
+          + Add Item
+        </Button>
+      </div>
     </div>
   )
 }
