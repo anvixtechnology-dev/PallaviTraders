@@ -641,6 +641,12 @@ function ComputedField({ label, value }: { label: string; value: string }) {
   )
 }
 
+/**
+ * Category field groups render with `display: contents`, so each field becomes
+ * a flex item of the item row and sits on the same line as the category.
+ */
+const FIELDS_CLASS = 'contents [&>*]:min-w-32 [&>*]:flex-1 md:[&>*]:min-w-0'
+
 function ItemRow({
   line,
   index,
@@ -668,44 +674,42 @@ function ItemRow({
 
   return (
     <div className="rounded-md border border-stone-200 bg-white p-4">
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div className="flex flex-wrap items-end gap-3">
-          <span className="flex h-[38px] items-center rounded-md border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700">
-            Item {index + 1}
-          </span>
-          <div className="w-44 sm:w-52">
-            <Field label="Category" htmlFor={`category-${line.key}`}>
-              <Select
-                id={`category-${line.key}`}
-                value={line.category}
-                onChange={(value) => onChangeCategory(line.key, value)}
-                options={CATEGORY_OPTIONS}
-              />
-            </Field>
-          </div>
+      {/* Item number, category and every category field share a single row. */}
+      <div className="flex flex-wrap items-end gap-3 md:flex-nowrap">
+        <span className="flex h-[38px] shrink-0 items-center rounded-md border border-stone-200 bg-stone-50 px-3 text-sm text-stone-700">
+          {index + 1}
+        </span>
+        <div className="w-32 shrink-0">
+          <Field label="Category" htmlFor={`category-${line.key}`}>
+            <Select
+              id={`category-${line.key}`}
+              value={line.category}
+              onChange={(value) => onChangeCategory(line.key, value)}
+              options={CATEGORY_OPTIONS}
+            />
+          </Field>
         </div>
 
+        {line.category === 'pipes' ? (
+          <PipesFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+        ) : null}
+        {line.category === 'sheets' ? (
+          <SheetsFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+        ) : null}
+        {line.category === 'hardware' ? (
+          <HardwareFields line={line} onChange={onChange} error={error} amount={amount} />
+        ) : null}
+        {line.category === 'none' ? (
+          <NoneFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
+        ) : null}
+      </div>
+
+      <div className="mt-4 flex justify-end gap-3">
         {canRemove ? (
           <Button variant="danger" onClick={() => onRemove(line.key)}>
             Remove
           </Button>
         ) : null}
-      </div>
-
-      {line.category === 'pipes' ? (
-        <PipesFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
-      ) : null}
-      {line.category === 'sheets' ? (
-        <SheetsFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
-      ) : null}
-      {line.category === 'hardware' ? (
-        <HardwareFields line={line} onChange={onChange} error={error} amount={amount} />
-      ) : null}
-      {line.category === 'none' ? (
-        <NoneFields line={line} onChange={onChange} error={error} weight={weight} amount={amount} />
-      ) : null}
-
-      <div className="mt-4 flex justify-end">
         <Button variant="secondary" onClick={() => onAddAfter(line.key, line.category)}>
           + Add Item
         </Button>
@@ -728,8 +732,8 @@ function NoneFields({
   amount: number
 }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
-      <div className="sm:col-span-1 md:col-span-2">
+    <div className={FIELDS_CLASS}>
+      <div className="flex-[2]!">
         <Field label="Item Type" htmlFor={`itemType-${line.key}`} error={error('itemType')}>
           <TextInput
             id={`itemType-${line.key}`}
@@ -822,7 +826,7 @@ function PipesFields({
   amount: number
 }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+    <div className={FIELDS_CLASS}>
       <Field label="Pipe Type" htmlFor={`pipeType-${line.key}`}>
         <Select
           id={`pipeType-${line.key}`}
@@ -906,7 +910,7 @@ function SheetsFields({
   amount: number
 }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+    <div className={FIELDS_CLASS}>
       <Field label="Length (ft)" htmlFor={`length-${line.key}`} error={error('lengthFt')}>
         <Select
           id={`length-${line.key}`}
@@ -973,7 +977,7 @@ function HardwareFields({
   amount: number
 }) {
   return (
-    <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2 md:grid-cols-3">
+    <div className={FIELDS_CLASS}>
       <Field label="Hardware Type" htmlFor={`hardwareType-${line.key}`}>
         <Select
           id={`hardwareType-${line.key}`}
@@ -983,7 +987,7 @@ function HardwareFields({
         />
       </Field>
 
-      <div className="sm:col-span-1 md:col-span-2">
+      <div className="flex-[2]!">
         <Field
           label="Description"
           htmlFor={`description-${line.key}`}
