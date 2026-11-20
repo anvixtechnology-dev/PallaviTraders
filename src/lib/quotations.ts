@@ -254,6 +254,7 @@ function toStoredItem(item: QuotationItemInput): QuotationItem {
       const stored: PipeItem = {
         ...item,
         size: item.size.trim(),
+        quality: (item.quality ?? '').trim(),
         totalWeightKg: pipeTotalWeight(item),
         amount: pipeAmount(item),
       }
@@ -262,6 +263,7 @@ function toStoredItem(item: QuotationItemInput): QuotationItem {
     case 'sheets': {
       const stored: SheetItem = {
         ...item,
+        quality: (item.quality ?? '').trim(),
         totalWeightKg: sheetTotalWeight(item),
         amount: sheetAmount(item),
       }
@@ -319,6 +321,12 @@ export function buildQuotation(
  */
 export const EMPTY_CELL = ''
 
+/** Append an entered quality to an item label, e.g. `Round Pipe (ISI)`. */
+function withQuality(label: string, quality: string | undefined): string {
+  const trimmed = quality?.trim()
+  return trimmed ? `${label} (${trimmed})` : label
+}
+
 /**
  * Flatten a quotation's items into a single table, in the order they were
  * entered. Every row has the same nine cells, matching the shared header used
@@ -345,14 +353,14 @@ export function quotationTableRows(quotation: Quotation): string[][] {
 
     switch (item.category) {
       case 'pipes':
-        row[2] = PIPE_TYPE_LABELS[item.pipeType]
+        row[2] = withQuality(PIPE_TYPE_LABELS[item.pipeType], item.quality)
         row[3] = item.size || EMPTY_CELL
         row[5] = formatNumber(item.totalWeightKg)
         row[6] = formatNumber(item.quantity, 0)
         row[7] = formatNumber(item.ratePerKg)
         break
       case 'sheets':
-        row[2] = 'Sheets'
+        row[2] = withQuality('Sheets', item.quality)
         row[4] = formatNumber(item.lengthFt, 1)
         row[5] = formatNumber(item.totalWeightKg)
         row[6] = formatNumber(item.quantity, 0)

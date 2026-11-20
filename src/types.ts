@@ -165,6 +165,8 @@ export interface PipeItemInput {
   pipeType: PipeType
   /** Nominal size (round) or dimensions (box), e.g. `1/2"` or `40 × 20 mm`. */
   size: string
+  /** Optional grade/quality; blank when not entered. */
+  quality?: string
   weightPerPipeKg: number
   quantity: number
   ratePerKg: number
@@ -174,6 +176,8 @@ export interface PipeItemInput {
 export interface SheetItemInput {
   category: 'sheets'
   lengthFt: number
+  /** Optional grade/quality; blank when not entered. */
+  quality?: string
   weightPerFootKg: number
   quantity: number
   ratePerKg: number

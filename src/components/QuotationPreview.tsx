@@ -15,6 +15,7 @@ import { downloadQuotationPdf } from '@/lib/quotation-pdf'
 import { formatDate } from '@/lib/dates'
 import { formatNumber } from '@/lib/money'
 import { WhatsAppDialog } from '@/components/WhatsAppDialog'
+import logoUrl from '@/assets/pallavi-logo.jpg?inline'
 
 function getPrintRoot(): HTMLElement {
   let root = document.querySelector<HTMLElement>('.print-root')
@@ -109,18 +110,29 @@ export function QuotationPreview({
       </div>
 
       <div className="print-sheet mx-auto w-[210mm] max-w-full bg-white p-[12mm] text-slate-900 shadow-lg">
-        <header className="relative text-center">
+        <header className="relative flex items-stretch gap-[3mm]">
+          {/* The logo column has no height of its own: it stretches to the text
+              block, so the logo always runs from the name down to the GSTIN line. */}
+          <div className="relative w-[34mm] shrink-0">
+            <img
+              src={logoUrl}
+              alt="Pallavi Iron Traders logo"
+              className="absolute inset-0 h-full w-full object-contain object-left-top"
+            />
+          </div>
           <div className="absolute right-0 top-0 text-xs font-medium text-slate-700">
             Ph No: {BUSINESS.phone}
           </div>
-          <h1 className="text-2xl font-bold tracking-wide text-blue-800">{BUSINESS.name}</h1>
-          <p className="text-sm font-semibold text-blue-700">{BUSINESS.businessType}</p>
-          <p className="text-xs text-slate-600">{BUSINESS.materials}</p>
-          <p className="mt-1 text-xs text-slate-700">{BUSINESS.address}</p>
-          <p className="text-xs text-slate-700">
-            Mobile: {BUSINESS.mobile} &nbsp;·&nbsp; Proprietors: {BUSINESS.proprietors} &nbsp;·&nbsp;
-            GSTIN: {BUSINESS.gstin}
-          </p>
+          <div className="min-w-0 flex-1 pt-4 text-center">
+            <h1 className="text-2xl font-bold tracking-wide text-blue-800">{BUSINESS.name}</h1>
+            <p className="text-sm font-semibold text-blue-700">{BUSINESS.businessType}</p>
+            <p className="text-xs text-slate-600">{BUSINESS.materials}</p>
+            <p className="mt-1 text-xs text-slate-700">{BUSINESS.address}</p>
+            <p className="text-xs text-slate-700">
+              Mobile: {BUSINESS.mobile} &nbsp;·&nbsp; Proprietors: {BUSINESS.proprietors}
+            </p>
+            <p className="text-xs text-slate-700">GSTIN: {BUSINESS.gstin}</p>
+          </div>
         </header>
 
         <div className="my-3 h-[3px] w-full bg-amber-500 print-exact" />

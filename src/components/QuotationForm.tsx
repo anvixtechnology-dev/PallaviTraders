@@ -71,6 +71,7 @@ interface PipeLineState {
   category: 'pipes'
   pipeType: PipeType
   size: string
+  quality: string
   weightPerPipe: string
   quantity: string
   ratePerKg: string
@@ -80,6 +81,7 @@ interface SheetLineState {
   key: number
   category: 'sheets'
   lengthFt: string
+  quality: string
   weightPerFoot: string
   quantity: string
   ratePerKg: string
@@ -123,6 +125,7 @@ function newLine(category: ItemCategory, key = lineCounter++): LineState {
       category: 'pipes',
       pipeType: 'round',
       size: '',
+      quality: '',
       weightPerPipe: '',
       quantity: '',
       ratePerKg: '',
@@ -133,6 +136,7 @@ function newLine(category: ItemCategory, key = lineCounter++): LineState {
       key,
       category: 'sheets',
       lengthFt: '10',
+      quality: '',
       weightPerFoot: '',
       quantity: '1',
       ratePerKg: '',
@@ -168,6 +172,7 @@ function toItemInput(line: LineState): QuotationItemInput {
       category: 'pipes',
       pipeType: line.pipeType,
       size: line.size,
+      quality: line.quality,
       weightPerPipeKg: parseNumericInput(line.weightPerPipe),
       quantity: parseNumericInput(line.quantity),
       ratePerKg: parseNumericInput(line.ratePerKg),
@@ -177,6 +182,7 @@ function toItemInput(line: LineState): QuotationItemInput {
     return {
       category: 'sheets',
       lengthFt: parseNumericInput(line.lengthFt),
+      quality: line.quality,
       weightPerFootKg: parseNumericInput(line.weightPerFoot),
       quantity: parseNumericInput(line.quantity),
       ratePerKg: parseNumericInput(line.ratePerKg),
@@ -226,6 +232,7 @@ function itemToLine(item: QuotationItem): LineState {
       category: 'pipes',
       pipeType: item.pipeType,
       size: item.size,
+      quality: item.quality ?? '',
       weightPerPipe: numberToInput(item.weightPerPipeKg),
       quantity: numberToInput(item.quantity),
       ratePerKg: numberToInput(item.ratePerKg),
@@ -236,6 +243,7 @@ function itemToLine(item: QuotationItem): LineState {
       key,
       category: 'sheets',
       lengthFt: numberToInput(item.lengthFt) || '10',
+      quality: item.quality ?? '',
       weightPerFoot: numberToInput(item.weightPerFootKg),
       quantity: numberToInput(item.quantity) || '1',
       ratePerKg: numberToInput(item.ratePerKg),
@@ -851,6 +859,15 @@ function PipesFields({
         />
       </Field>
 
+      <Field label="Quality" htmlFor={`quality-${line.key}`}>
+        <TextInput
+          id={`quality-${line.key}`}
+          value={line.quality}
+          onChange={(value) => onChange(line.key, { quality: value })}
+          placeholder="e.g. ISI"
+        />
+      </Field>
+
       <Field
         label="Weight per Pipe (Kg)"
         htmlFor={`weightPerPipe-${line.key}`}
@@ -917,6 +934,15 @@ function SheetsFields({
           value={line.lengthFt}
           onChange={(value) => onChange(line.key, { lengthFt: value })}
           options={SHEET_LENGTH_OPTIONS}
+        />
+      </Field>
+
+      <Field label="Quality" htmlFor={`quality-${line.key}`}>
+        <TextInput
+          id={`quality-${line.key}`}
+          value={line.quality}
+          onChange={(value) => onChange(line.key, { quality: value })}
+          placeholder="e.g. ISI"
         />
       </Field>
 

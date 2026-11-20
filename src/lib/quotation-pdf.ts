@@ -6,6 +6,12 @@ import type { Quotation } from '@/types'
 import { BUSINESS, quotationPdfFileName, GST_NOTE, quotationTableRows } from './quotations'
 import { formatDate } from './dates'
 import { formatNumber } from './money'
+import logoDataUrl from '@/assets/pallavi-logo.jpg?inline'
+
+/** Logo source is 1254 x 944; its width follows from the header height. */
+const LOGO_ASPECT = 1254 / 944
+/** Space between the logo and the header text. */
+const LOGO_GAP = 2
 
 const MARGIN = 8
 const PAGE_WIDTH = 148
@@ -26,41 +32,84 @@ function lastY(doc: jsPDF, fallback: number): number {
   return table?.finalY ?? fallback
 }
 
+/**
+ * Letterhead: the logo on the left runs the full height of the header text
+ * (business name down to the GSTIN line); the text is centred in the space to
+ * its right. The logo's width depends on the text height, and the text height
+ * on how lines wrap in the remaining width, so settle the two together.
+ */
 function drawHeader(doc: jsPDF): number {
+  const top = 8
+  const nameBaseline = top + 4.5
+  const typeBaseline = top + 9.5
+  const firstSmallBaseline = typeBaseline + 4.2
+  const smallLine = 2.7
+  const small = [
+    BUSINESS.materials,
+    BUSINESS.address,
+    `Mobile: ${BUSINESS.mobile}   ·   Proprietor: ${BUSINESS.proprietors}`,
+    `GSTIN: ${BUSINESS.gstin}`,
+  ]
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(6.5)
+  const wrapAt = (logoHeight: number) => {
+    const width = PAGE_WIDTH - MARGIN * 2 - logoHeight * LOGO_ASPECT - LOGO_GAP
+    return small.map((text) => doc.splitTextToSize(text, width) as string[])
+  }
+  const heightOf = (wrapped: string[][]) => {
+    const lines = wrapped.reduce((count, block) => count + block.length, 0)
+    // Down to the last small line's baseline, plus its descender.
+    return firstSmallBaseline + (lines - 1) * smallLine + 1 - top
+  }
+
+  let logoHeight = heightOf(small.map((text) => [text]))
+  let wrapped = wrapAt(logoHeight)
+  for (let i = 0; i < 4; i++) {
+    const next = heightOf(wrapped)
+    if (next === logoHeight) break
+    logoHeight = next
+    wrapped = wrapAt(logoHeight)
+  }
+
+  const logoWidth = logoHeight * LOGO_ASPECT
+  const textLeft = MARGIN + logoWidth + LOGO_GAP
+  const centerX = textLeft + (PAGE_WIDTH - MARGIN - textLeft) / 2
+
+  doc.addImage(logoDataUrl, 'JPEG', MARGIN, top, logoWidth, logoHeight)
+
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(16)
   doc.setTextColor(...BLUE)
-  doc.text(BUSINESS.name, PAGE_WIDTH / 2, 12, { align: 'center' })
+  doc.text(BUSINESS.name, centerX, nameBaseline, { align: 'center' })
 
   doc.setFontSize(8.5)
-  doc.text(BUSINESS.businessType, PAGE_WIDTH / 2, 17, { align: 'center' })
+  doc.text(BUSINESS.businessType, centerX, typeBaseline, { align: 'center' })
 
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(6.5)
   doc.setTextColor(...MUTED)
-  doc.text(BUSINESS.materials, PAGE_WIDTH / 2, 21, { align: 'center', maxWidth: CONTENT_WIDTH })
-  doc.text(BUSINESS.address, PAGE_WIDTH / 2, 24.5, { align: 'center', maxWidth: CONTENT_WIDTH })
-  doc.text(
-    `Mobile: ${BUSINESS.mobile}   ·   Proprietor: ${BUSINESS.proprietors}   ·   GSTIN: ${BUSINESS.gstin}`,
-    PAGE_WIDTH / 2,
-    28,
-    { align: 'center' },
-  )
+  let y = firstSmallBaseline
+  for (const line of wrapped.flat()) {
+    doc.text(line, centerX, y, { align: 'center' })
+    y += smallLine
+  }
 
   doc.setFontSize(7)
   doc.setTextColor(...SLATE)
-  doc.text(`Ph No: ${BUSINESS.phone}`, PAGE_WIDTH - MARGIN, 7, { align: 'right' })
+  doc.text(`Ph No: ${BUSINESS.phone}`, PAGE_WIDTH - MARGIN, 5.5, { align: 'right' })
 
+  const ruleY = top + logoHeight + 2.5
   doc.setDrawColor(...GOLD)
   doc.setLineWidth(0.6)
-  doc.line(MARGIN, 31, PAGE_WIDTH - MARGIN, 31)
+  doc.line(MARGIN, ruleY, PAGE_WIDTH - MARGIN, ruleY)
 
   doc.setFont('helvetica', 'bold')
   doc.setFontSize(11)
   doc.setTextColor(...GOLD)
-  doc.text('QUOTATION', PAGE_WIDTH / 2, 37.5, { align: 'center' })
+  doc.text('QUOTATION', PAGE_WIDTH / 2, ruleY + 6.5, { align: 'center' })
 
-  return 41
+  return ruleY + 10
 }
 
 function drawInfoTable(doc: jsPDF, quotation: Quotation, startY: number): number {
